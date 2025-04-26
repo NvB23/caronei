@@ -11,6 +11,8 @@ if(importlib.util.find_spec("pwinput") is None):
 
 import pwinput
 from time import sleep
+from datetime import date, datetime
+import time
 
 caronei = """
    ______   ___       ____     ____     _   __   ______   ____   __
@@ -20,15 +22,17 @@ caronei = """
 \____/  /_/  |_|  /_/ |_|   \____/  /_/ |_/  /_____/  /___/  (_)  
 """
 
-usuarios_cadastrados = []
+usuarios_cadastrados = [['Naum', 'naum', '123']]
+caronas_cadastradas = {}
+
 usuario_atual = -1
 logado = False
 logout_opcao = ""
 cad_log_opcao = ""
+invalida_opcao = "Opção Inválida!"
 
 while True:
     linhas = "-" * 25
-    apagar_terminal = os.system("cls" if os.name == 'nt' else 'clear')
 
     # Mostra sessão de usuário com nome
     if(logado == True and usuario_atual != -1):
@@ -51,44 +55,255 @@ while True:
     opcao = input("\033[1;34mSelecione uma opção >>> \033[m")
     print("\n")
 
+    # Valida se o usuário não digitar nada
+    if(opcao.strip() == ""):
+        print("Digite algo!")
+        sleep(1)
+        os.system("cls" if os.name == 'nt' else 'clear')
+        continue
+
+    # Valida se não vai digitar nada fora do padrão
+    elif(opcao not in ["1", "2", "3", "0"]):
+        print(invalida_opcao)
+        sleep(1)
+        os.system("cls" if os.name == 'nt' else 'clear')
+        continue
+
     # Cadastro de usuários
-    if(opcao == '1'):
-        if(logado == False):
-            print(f"{linhas} Cadastro {linhas}")
-            nome = input("Digite seu nome: ")
-            email = input("Digite seu email: ")
-            senha = pwinput.pwinput(prompt="Digite sua senha: ", mask="•")
-            confirmar_senha = pwinput.pwinput(prompt="Digite sua senha novamente: ", mask="•")
-            usuarios_cadastrados.append([nome, email, senha])
-            apagar_terminal
+    elif(opcao == '1' and logado == False):
+        print(f"{linhas} Cadastro {linhas}")
+        nome = input("Digite seu nome: ")
+        email = input("Digite seu email: ")
+        senha = pwinput.pwinput(prompt="Digite sua senha: ", mask="•")
+        confirmar_senha = pwinput.pwinput(prompt="Digite sua senha novamente: ", mask="•")
+        usuarios_cadastrados.append([nome, email, senha])
+        os.system("cls" if os.name == 'nt' else 'clear')
+
+    # Oferecer Carona
+    elif(opcao == '1' and logado == True):  
+        while True:      
+            origem = input("De onde você vai partir: ").title()
+            if origem.strip() == "":
+                print("Digite algo!")
+                continue
+            elif origem.isnumeric() or origem.isdecimal():
+                print("Apenas letras!")
+                continue
+            break
+        while True:
+            destino = input("\nPara onde você vai: ").title()
+            if destino.strip() == "":
+                print("Digite algo!")
+                continue
+            elif destino.isnumeric() or destino.isdecimal():
+                print("Apenas letras!")
+                continue
+            break
+        
+        data_viagem = ""
+        horario = ""
+
+        dia_viagem = ""
+        mes_viagem = ""
+        ano_viagem = ""
+
+        data_atual = str(date.today())
+        ano_atual = data_atual[0:4]
+        mes_atual = data_atual[5:7]
+        dia_atual = data_atual[8:10]
+
+        # Bloco de data e tratamentos
+        while True:
+            hoje = input("\nVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ")
+            if(hoje == '1'):
+                ano_viagem = data_atual[0:4]
+                mes_viagem = data_atual[5:7]
+                dia_viagem = data_atual[8:10]
+                break
+            elif(hoje == '2'):
+                print("Quando vai ser a viagem: ")
+
+                # Valida dia
+                while True:
+                    dia_viagem = input("    Dia: ")
+                    if dia_viagem.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not dia_viagem.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(dia_viagem) < 1 or int(dia_viagem) > 31:
+                        print("Apenas valores entre 1 e 31!")
+                        continue
+                    else:
+                        break
+
+                # Valida mês
+                while True:
+                    mes_viagem = input("    Mês: ")
+                    if mes_viagem.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not mes_viagem.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(mes_viagem) < 1 or int(mes_viagem) > 12:
+                        print("Apenas valores entre 1 e 12!")
+                        continue
+                    else:
+                        break
+                
+                # Valida ano
+                while True:
+                    ano_viagem = input("    Ano: ")
+                    if ano_viagem.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not ano_viagem.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(ano_viagem) < int(ano_atual):
+                        print("Somente anos atuais ou futuros!")
+                        continue
+                    else:
+                        break
+                
+                # Verifica se a data já passou
+                data_informada = date(int(ano_viagem), int(mes_viagem), int(dia_viagem))
+                if data_informada < date.today():
+                    print("Somente data atual ou futura!")
+                    continue
+
+                break
+            else:
+                print(f"{invalida_opcao}\n")
+                continue
+       
+        data_viagem = f"{dia_viagem if len(dia_viagem) == 2 or dia_viagem[0] == '0' else f'0{dia_viagem}'}/{mes_viagem if len(mes_viagem) == 2 or mes_viagem[0] == '0' else f'0{mes_viagem}'}/{ano_viagem}"
+
+        while True:
+            hoje = input("\nVai ser agora? \n  [1] Sim \n  [2] Não\n>>> ")
+
+            hora = ""
+            minutos = ""
+
+            if (hoje == '1'):
+                hora_atual = time.strftime("%H:%M", time.localtime())
+                hora = hora_atual[0:2]
+                minutos = hora_atual[3:5]
+                break
+            elif (hoje == '2'):
+                print("\nQual o horário:")
+
+                # Valida hora
+                while True:
+                    hora = input("    Hora: ")
+                    if hora.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not hora.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(hora) < 0 or int(hora) > 24:
+                        print("Apenas números entre 1 e 24!")
+                        continue
+                    else:
+                        break
+                
+                # Valida minutos
+                while True:
+                    minutos = input("    Minuto: ")
+                    if minutos.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not minutos.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif (int(minutos) < 0 or int(minutos) > 59):
+                        print("Apenas números entre 1 e 59!")
+                        continue
+                    else:
+                        break
+
+                # Verifica se o minuto já passou
+                if date(int(ano_viagem), int(mes_viagem), int(dia_viagem)) == date.today():
+                    h_atual = datetime.now().hour
+                    m_atual = datetime.now().minute
+                    if int(hora) < h_atual or (int(hora) == h_atual and int(minutos) <= m_atual):
+                        print("Hora já passada!")
+                        continue
+                break
+
+        horario = f"{hora if len(hora) == 2 or hora[0] == '0' else f'0{hora}'}:{minutos if len(minutos) == 2 or minutos[0] == '0' else f'0{minutos}'}"
+
+        # Validando vagas
+        while True:
+            vagas = input("Quantas vagas disponíveis: ")
+            if vagas.strip() == "":
+                print("Digite algo!")
+                continue
+            elif(vagas.isalpha()):
+                print("Apenas números!")
+                continue
+            elif(int(vagas) < 1):
+                 print("Apenas uma ou mais vagas!")
+                 continue
+            elif(not vagas.isdecimal()):
+                 print("Apenas números inteiros!")
+                 continue
+            else:
+                 break
+        
+
+        # Validando preço por vagas
+        while True:
+            valor_por_vagas = input("Qual o valor de cada vaga? R$")
+
+            if valor_por_vagas.strip() == "":
+                print("Digite algo!")
+                continue
+            elif(valor_por_vagas.isalpha()):
+                print("Apenas números!")
+                continue
+            elif(float(valor_por_vagas) < 0):
+                print("Apenas valor positivo!")
+            else:
+                break
+        
+        caronas_cadastradas[usuario_atual] = {'origem': origem, 'destino': destino, 'data_carona': data_viagem, 'horario': horario, 'vagas': vagas, 'valor_vaga': f"{float(valor_por_vagas):.2f}"}
+
+        print("\nCarona criada com sucesso!")
+        os.system("cls" if os.name == 'nt' else 'clear')
+
 
     # Login de usuários
-    if(opcao == '2'):
-        if(logado == False):
-            print(f"{linhas} Login {linhas}")
-            login_email = input("Digite o seu email: ")
-            login_senha = pwinput.pwinput(prompt="Digite o sua senha: ", mask="•")
-            for i in range(len(usuarios_cadastrados)):
-                if (login_email == usuarios_cadastrados[i][1]):
-                    usuario_atual = i
-            for usuario in usuarios_cadastrados:
-                if((login_email in usuario[1]) and (login_senha in usuario[2])):
-                    logado = True
-            apagar_terminal
+    if(opcao == '2' and logado == False):
+        print(f"{linhas} Login {linhas}")
+        login_email = input("Digite o seu email: ")
+        login_senha = pwinput.pwinput(prompt="Digite o sua senha: ", mask="•")
+        for i in range(len(usuarios_cadastrados)):
+            if (login_email == usuarios_cadastrados[i][1]):
+                usuario_atual = i
+        for usuario in usuarios_cadastrados:
+            if((login_email in usuario[1]) and (login_senha in usuario[2])):
+                logado = True
+        os.system("cls" if os.name == 'nt' else 'clear')
+
+    # Pegar Carona
+    elif(opcao == '2' and logado == True):
+        pass
 
     # Sair da conta
-    if(opcao == '3'):
+    elif(opcao == '3'):
         if (logado == True):
             logado = False
             print("Saindo da conta...")
             sleep(3)
             print("Concluido")
             sleep(2)
-            apagar_terminal
-        else:
-            print("Opção Inválida")
+            os.system("cls" if os.name == 'nt' else 'clear')
 
 
     # Fecha o programa
-    if(opcao == '0'):
+    elif(opcao == '0'):
         break
