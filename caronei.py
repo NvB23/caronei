@@ -49,7 +49,8 @@ while True:
     else:
         print("     [1] Oferecer Carona\n     [2] Pegar Carona")
     if(logado == True):
-        print("     [3] Logout")
+        print("     [3] Listar Todas as Caronas Disponíveis")
+        print("     [4] Logout")
     print("     [0] Fechar\n")
 
     opcao = input("\033[1;34mSelecione uma opção >>> \033[m")
@@ -63,23 +64,77 @@ while True:
         continue
 
     # Valida se não vai digitar nada fora do padrão
-    elif(opcao not in ["1", "2", "3", "0"]):
+    elif(opcao not in ["1", "2", "3", "4", "0"]):
         print(invalida_opcao)
         sleep(1)
         os.system("cls" if os.name == 'nt' else 'clear')
         continue
 
-    # Cadastro de usuários
+    # Cadastro de usuários e validações
     elif(opcao == '1' and logado == False):
         print(f"{linhas} Cadastro {linhas}")
-        nome = input("Digite seu nome: ")
-        email = input("Digite seu email: ")
-        senha = pwinput.pwinput(prompt="Digite sua senha: ", mask="•")
-        confirmar_senha = pwinput.pwinput(prompt="Digite sua senha novamente: ", mask="•")
+
+        while True:
+            nome = input("\nDigite seu nome: ").title()
+            if nome.strip() == "":
+                print("Digite algo!")
+                continue
+            elif nome.isnumeric() or nome.isdecimal():
+                print("Apenas letras!")
+                continue
+            elif not all(palavra.isalpha() for palavra in nome.split()):
+                print("Apenas letras!")
+                continue
+            break
+        
+        while True:
+            email = input("\nDigite seu email: ")
+            if email.strip() == "":
+                print("Digite algo!")
+                continue
+            elif email.find("@") == -1 or email.find(".") == -1:
+                print("Email inválido!")
+                continue
+            elif email.isnumeric() or email.isdecimal():
+                print("Apenas letras!")
+                continue
+            cadastrado = False
+            for usu in usuarios_cadastrados:
+                if(email == usu[1]):
+                    print("Email já cadastrado!")
+                    cadastrado = True
+                    break
+
+            if(cadastrado == True):
+                continue
+
+            break
+
+        while True:
+            senha = pwinput.pwinput(prompt="\nDigite sua senha: ", mask="•")
+            if senha.strip() == "":
+                print("Digite algo!")
+                continue
+            elif len(senha) < 8 or len(senha) > 15:
+                print("A senha precisa ter no mínimo 8 caracteres e no máximo 15 caracteres!")
+                continue
+            break
+
+        while True:
+            confirmar_senha = pwinput.pwinput(prompt="\nDigite sua senha novamente: ", mask="•")
+            if(confirmar_senha != senha):
+                print("Diverge do campo anterior!")
+                continue
+            break
+
+        print("\nCadastro realizado com sucesso!")
+        sleep(1)
+
         usuarios_cadastrados.append([nome, email, senha])
         os.system("cls" if os.name == 'nt' else 'clear')
+            
 
-    # Oferecer Carona
+    # Oferecer Carona e validações
     elif(opcao == '1' and logado == True):  
         while True:      
             origem = input("De onde você vai partir: ").title()
@@ -273,35 +328,85 @@ while True:
         caronas_cadastradas[usuario_atual] = {'origem': origem, 'destino': destino, 'data_carona': data_viagem, 'horario': horario, 'vagas': vagas, 'valor_vaga': f"{float(valor_por_vagas):.2f}"}
 
         print("\nCarona criada com sucesso!")
+        sleep(1)
         os.system("cls" if os.name == 'nt' else 'clear')
 
 
     # Login de usuários
     if(opcao == '2' and logado == False):
-        print(f"{linhas} Login {linhas}")
-        login_email = input("Digite o seu email: ")
-        login_senha = pwinput.pwinput(prompt="Digite o sua senha: ", mask="•")
-        for i in range(len(usuarios_cadastrados)):
-            if (login_email == usuarios_cadastrados[i][1]):
-                usuario_atual = i
-        for usuario in usuarios_cadastrados:
-            if((login_email in usuario[1]) and (login_senha in usuario[2])):
-                logado = True
-        os.system("cls" if os.name == 'nt' else 'clear')
+        while True:
+            print(f"{linhas} Login {linhas}")
+            while True:
+                login_email = input("Digite o seu email: ")
+                if login_email.strip() == "":
+                    print("Digite algo!")
+                    continue
+                elif login_email.find("@") == -1 or login_email.find(".") == -1:
+                    print("Email inválido!")
+                    continue
+                elif login_email.isnumeric() or login_email.isdecimal():
+                    print("Apenas letras!")
+                    continue
+                break
+
+            while True:
+                login_senha = pwinput.pwinput(prompt="\nDigite o sua senha: ", mask="•")
+                if login_senha.strip() == "":
+                    print("Digite algo!")
+                    continue
+                elif len(login_senha) < 8 or len(login_senha) > 15:
+                    print("A senha precisa ter no mínimo 8 caracteres e no máximo 15 caracteres!")
+                    continue
+                break
+
+            for i in range(len(usuarios_cadastrados)):
+                if (login_email == usuarios_cadastrados[i][1]):
+                    usuario_atual = i
+            for usuario in usuarios_cadastrados:
+                if((login_email in usuario[1]) and (login_senha in usuario[2])):
+                    logado = True
+            os.system("cls" if os.name == 'nt' else 'clear')
+
+            break
+
+        if(logado == False):
+            print("Falha ao logar! Tente novamente!")
+            continue
 
     # Pegar Carona
     elif(opcao == '2' and logado == True):
         pass
 
-    # Sair da conta
-    elif(opcao == '3'):
-        if (logado == True):
-            logado = False
-            print("Saindo da conta...")
+    # Listar todas as caronas
+    elif (opcao == '3' and logado == True):
+        print(f"{linhas} Caronas Disponíveis {linhas}\n")
+        if(len(caronas_cadastradas) == 0):
+            print("Sem caronas cadastradas! \n".center(70))
             sleep(3)
-            print("Concluido")
-            sleep(2)
             os.system("cls" if os.name == 'nt' else 'clear')
+        else:
+            for usuario, carona in caronas_cadastradas.items():
+                print(f"    Motorista: {usuarios_cadastrados[usuario][0]}".center(70))
+                print(f"    Origem: {carona['origem']}".center(70))
+                print(f"    Destino: {carona['destino']}".center(70))
+                print(f"    Data da Carona: {carona['data_carona']}".center(70))
+                print(f"    Horario: {carona['horario']}".center(70))
+                print(f"    Vagas: {carona['vagas']}".center(70))
+                print(f"    Valor por Vagas: R${carona['valor_vaga']}".center(70))
+                print(f"{'_' * 70}\n")
+
+        tempo = len(caronas_cadastradas * 2)
+        sleep(tempo)
+        os.system("cls" if os.name == 'nt' else 'clear')
+
+    # Sair da conta
+    elif(opcao == '4' and logado == True):
+        logado = False
+        print("Saindo da conta...")
+        sleep(3)
+        print("Concluido!")
+        sleep(2)
+        os.system("cls" if os.name == 'nt' else 'clear')
 
 
     # Fecha o programa
