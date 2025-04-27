@@ -22,9 +22,9 @@ caronei = """
 \____/  /_/  |_|  /_/ |_|   \____/  /_/ |_/  /_____/  /___/  (_)  
 """
 
-usuarios_cadastrados = [['Naum', 'naum', '123']]
-caronas_cadastradas = {}
-
+usuarios_cadastrados = []
+caronas_cadastradas = []
+caronas_reservadas = {}
 usuario_atual = -1
 logado = False
 logout_opcao = ""
@@ -47,10 +47,12 @@ while True:
     if(logado == False):
         print("     [1] Cadastrar Usuário\n     [2] Fazer Login")
     else:
-        print("     [1] Oferecer Carona\n     [2] Pegar Carona")
+            print("     [1] Oferecer Carona")
+            print("     [2] Pegar Carona")
     if(logado == True):
         print("     [3] Listar Todas as Caronas Disponíveis")
-        print("     [4] Logout")
+        print("     [4] Buscar Carona")
+        print("     [5] Logout")
     print("     [0] Fechar\n")
 
     opcao = input("\033[1;34mSelecione uma opção >>> \033[m")
@@ -64,7 +66,7 @@ while True:
         continue
 
     # Valida se não vai digitar nada fora do padrão
-    elif(opcao not in ["1", "2", "3", "4", "0"]):
+    elif(opcao not in ["1", "2", "3", "4", "5", "0"]):
         print(invalida_opcao)
         sleep(1)
         os.system("cls" if os.name == 'nt' else 'clear')
@@ -135,7 +137,7 @@ while True:
             
 
     # Oferecer Carona e validações
-    elif(opcao == '1' and logado == True):  
+    elif(opcao == '1' and logado == True):
         while True:      
             origem = input("De onde você vai partir: ").title()
             if origem.strip() == "":
@@ -236,6 +238,7 @@ while True:
        
         data_viagem = f"{dia_viagem if len(dia_viagem) == 2 or dia_viagem[0] == '0' else f'0{dia_viagem}'}/{mes_viagem if len(mes_viagem) == 2 or mes_viagem[0] == '0' else f'0{mes_viagem}'}/{ano_viagem}"
 
+        # Bloco hora e validações
         while True:
             hoje = input("\nVai ser agora? \n  [1] Sim \n  [2] Não\n>>> ")
 
@@ -325,7 +328,7 @@ while True:
             else:
                 break
         
-        caronas_cadastradas[usuario_atual] = {'origem': origem, 'destino': destino, 'data_carona': data_viagem, 'horario': horario, 'vagas': vagas, 'valor_vaga': f"{float(valor_por_vagas):.2f}"}
+        caronas_cadastradas.append([usuario_atual, origem, destino, data_viagem, horario, int(vagas), f"{float(valor_por_vagas):.2f}"])
 
         print("\nCarona criada com sucesso!")
         sleep(1)
@@ -335,6 +338,7 @@ while True:
     # Login de usuários
     if(opcao == '2' and logado == False):
         while True:
+            login_email = ""
             print(f"{linhas} Login {linhas}")
             while True:
                 login_email = input("Digite o seu email: ")
@@ -363,7 +367,7 @@ while True:
                 if (login_email == usuarios_cadastrados[i][1]):
                     usuario_atual = i
             for usuario in usuarios_cadastrados:
-                if((login_email in usuario[1]) and (login_senha in usuario[2])):
+                if((login_email == usuario[1]) and (login_senha == usuario[2])):
                     logado = True
             os.system("cls" if os.name == 'nt' else 'clear')
 
@@ -375,7 +379,115 @@ while True:
 
     # Pegar Carona
     elif(opcao == '2' and logado == True):
-        pass
+        print(f"{linhas} Reservar Carona {linhas}")
+        while True:
+            motorista_email = input("Digite o email do motorista: ")
+            if motorista_email.strip() == "":
+                print("Digite algo!")
+                continue
+            elif motorista_email.find("@") == -1 or motorista_email.find(".") == -1:
+                print("Email inválido!")
+                continue
+            elif motorista_email.isnumeric() or motorista_email.isdecimal():
+                print("Apenas letras!")
+                continue
+            break
+
+        while True:
+            hoje = input("\nVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ")
+            if(hoje == '1'):
+                ano_viagem = data_atual[0:4]
+                mes_viagem = data_atual[5:7]
+                dia_viagem = data_atual[8:10]
+                break
+            elif(hoje == '2'):
+                print("Quando vai ser a viagem: ")
+
+                # Valida dia
+                while True:
+                    dia_viagem = input("    Dia: ")
+                    if dia_viagem.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not dia_viagem.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(dia_viagem) < 1 or int(dia_viagem) > 31:
+                        print("Apenas valores entre 1 e 31!")
+                        continue
+                    else:
+                        break
+
+                # Valida mês
+                while True:
+                    mes_viagem = input("    Mês: ")
+                    if mes_viagem.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not mes_viagem.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(mes_viagem) < 1 or int(mes_viagem) > 12:
+                        print("Apenas valores entre 1 e 12!")
+                        continue
+                    else:
+                        break
+                
+                # Valida ano
+                while True:
+                    ano_viagem = input("    Ano: ")
+                    if ano_viagem.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not ano_viagem.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(ano_viagem) < int(ano_atual):
+                        print("Somente anos atuais ou futuros!")
+                        continue
+                    else:
+                        break
+                
+                # Verifica se a data já passou
+                data_informada = date(int(ano_viagem), int(mes_viagem), int(dia_viagem))
+                if data_informada < date.today():
+                    print("Somente data atual ou futura!")
+                    continue
+                break
+            else:
+                print(f"{invalida_opcao}\n")
+                continue
+       
+        data_viagem = f"{dia_viagem if len(dia_viagem) == 2 or dia_viagem[0] == '0' else f'0{dia_viagem}'}/{mes_viagem if len(mes_viagem) == 2 or mes_viagem[0] == '0' else f'0{mes_viagem}'}/{ano_viagem}"
+
+        informações_validadas = False
+        for carona in caronas_cadastradas:
+            if (not usuarios_cadastrados[usuario_atual][1] == motorista_email) and (data_viagem == carona[3]) and (motorista_email == usuarios_cadastrados[carona[0]][1]):
+                informações_validadas = True
+                carona[5] -= 1
+                if(motorista_email, data_viagem) not in caronas_reservadas:
+                    caronas_reservadas[(motorista_email, data_viagem)] = []
+                caronas_reservadas[(motorista_email, data_viagem)].append(usuario_atual)
+                print(caronas_reservadas)
+                print("\nCarona reservada!")
+                sleep(3)
+                os.system("cls" if os.name == 'nt' else 'clear')
+                break
+            elif carona[5] == 0:
+                print("Não há mais vagas!")
+                informações_validadas = False
+            elif usuarios_cadastrados[usuario_atual][1] == motorista_email:
+                print("Não é permitido pegar uma carona que você criou!")
+                informações_validadas = False
+            else:
+                informações_validadas = False
+                print("Carona não encontrada!")
+        
+        if informações_validadas == False:
+            sleep(3)
+            os.system("cls" if os.name == 'nt' else 'clear')
+            continue
+        
 
     # Listar todas as caronas
     elif (opcao == '3' and logado == True):
@@ -385,30 +497,75 @@ while True:
             sleep(3)
             os.system("cls" if os.name == 'nt' else 'clear')
         else:
-            for usuario, carona in caronas_cadastradas.items():
-                print(f"    Motorista: {usuarios_cadastrados[usuario][0]}".center(70))
-                print(f"    Origem: {carona['origem']}".center(70))
-                print(f"    Destino: {carona['destino']}".center(70))
-                print(f"    Data da Carona: {carona['data_carona']}".center(70))
-                print(f"    Horario: {carona['horario']}".center(70))
-                print(f"    Vagas: {carona['vagas']}".center(70))
-                print(f"    Valor por Vagas: R${carona['valor_vaga']}".center(70))
+            for carona in caronas_cadastradas:
+                print(f"    Motorista: {carona[0]}".center(70))
+                print(f"    Email do Motorista: {usuarios_cadastrados[carona[0]][1]}".center(70))
+                print(f"    Origem: {carona[1]}".center(70))
+                print(f"    Destino: {carona[2]}".center(70))
+                print(f"    Data da Carona: {carona[3]}".center(70))
+                print(f"    Horario: {carona[4]}".center(70))
+                print(f"    Vagas: {carona[5]}".center(70))
+                print(f"    Valor por Vagas: R${carona[6]}".center(70))
                 print(f"{'_' * 70}\n")
 
-        tempo = len(caronas_cadastradas * 2)
-        sleep(tempo)
-        os.system("cls" if os.name == 'nt' else 'clear')
+            tempo = len(caronas_cadastradas) * 4
+            sleep(tempo)
+            os.system("cls" if os.name == 'nt' else 'clear')
+    
+    # Busca todas a caronas
+    elif(opcao == '4' and logado == True):
+        print(f"{linhas} Busca de Caronas {linhas}")
+        while True:      
+            origem_busca = input("\nDigite a origem buscada: ").title()
+            if origem_busca.strip() == "":
+                print("Digite algo!")
+                continue
+            elif origem_busca.isnumeric() or origem_busca.isdecimal():
+                print("Apenas letras!")
+                continue
+            break
+        while True:
+            destino_busca = input("\nDigite o destino buscado: ").title()
+            if destino_busca.strip() == "":
+                print("Digite algo!")
+                continue
+            elif destino_busca.isnumeric() or destino_busca.isdecimal():
+                print("Apenas letras!")
+                continue
+            break
+        print("\n")
+        encontrado_carona = False
+        for carona in caronas_cadastradas:
+            if origem_busca == carona[1] and destino_busca == carona[2]:
+                encontrado_carona = True
+                print(f"    Motorista: {carona[0]}".center(70))
+                print(f"    Email do Motorista: {usuarios_cadastrados[carona[0]][1]}".center(70))
+                print(f"    Origem: {carona[1]}".center(70))
+                print(f"    Destino: {carona[2]}".center(70))
+                print(f"    Data da Carona: {carona[3]}".center(70))
+                print(f"    Horario: {carona[4]}".center(70))
+                print(f"    Vagas: {carona[5]}".center(70))
+                print(f"    Valor por Vagas: R${carona[6]}".center(70))
+                print(f"{'_' * 70}\n")
+                sleep(5)
+        if encontrado_carona == False:
+            print("Nenhuma carona para essa busca! \n".center(70))
+            sleep(3)
+            os.system("cls" if os.name == 'nt' else 'clear')
+            continue
+
 
     # Sair da conta
-    elif(opcao == '4' and logado == True):
+    elif(opcao == '5' and logado == True):
         logado = False
         print("Saindo da conta...")
-        sleep(3)
-        print("Concluido!")
         sleep(2)
+        print("Concluido!")
+        sleep(1)
         os.system("cls" if os.name == 'nt' else 'clear')
 
 
     # Fecha o programa
     elif(opcao == '0'):
+        os.system("cls" if os.name == 'nt' else 'clear')
         break
