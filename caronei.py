@@ -52,7 +52,11 @@ while True:
     if(logado == True):
         print("     [3] Listar Todas as Caronas Disponíveis")
         print("     [4] Buscar Carona")
-        print("     [5] Logout")
+        print("     [5] Motrar Detalhes da Carona")
+        print("     [6] Mostrar Todas as Suas Caronas")
+        print("     [7] Cancelar Reserva")
+        print("     [8] Remover Carona")
+        print("     [9] Logout")
     print("     [0] Fechar\n")
 
     opcao = input("\033[1;34mSelecione uma opção >>> \033[m")
@@ -66,7 +70,7 @@ while True:
         continue
 
     # Valida se não vai digitar nada fora do padrão
-    elif(opcao not in ["1", "2", "3", "4", "5", "0"]):
+    elif(opcao not in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]):
         print(invalida_opcao)
         sleep(1)
         os.system("cls" if os.name == 'nt' else 'clear')
@@ -396,6 +400,7 @@ while True:
         while True:
             hoje = input("\nVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ")
             if(hoje == '1'):
+                data_atual = str(date.today())
                 ano_viagem = data_atual[0:4]
                 mes_viagem = data_atual[5:7]
                 dia_viagem = data_atual[8:10]
@@ -468,7 +473,6 @@ while True:
                 if(motorista_email, data_viagem) not in caronas_reservadas:
                     caronas_reservadas[(motorista_email, data_viagem)] = []
                 caronas_reservadas[(motorista_email, data_viagem)].append(usuario_atual)
-                print(caronas_reservadas)
                 print("\nCarona reservada!")
                 sleep(3)
                 os.system("cls" if os.name == 'nt' else 'clear')
@@ -535,6 +539,7 @@ while True:
             break
         print("\n")
         encontrado_carona = False
+        cont = 0
         for carona in caronas_cadastradas:
             if origem_busca == carona[1] and destino_busca == carona[2]:
                 encontrado_carona = True
@@ -547,16 +552,348 @@ while True:
                 print(f"    Vagas: {carona[5]}".center(70))
                 print(f"    Valor por Vagas: R${carona[6]}".center(70))
                 print(f"{'_' * 70}\n")
-                sleep(5)
+
+                cont += 1
+
+        sleep(cont * 3)
+        os.system("cls" if os.name == 'nt' else 'clear')
+
         if encontrado_carona == False:
             print("Nenhuma carona para essa busca! \n".center(70))
             sleep(3)
             os.system("cls" if os.name == 'nt' else 'clear')
             continue
 
+    # Mostrar Detalhes de uma Carona
+    elif(opcao == '5' and logado == True):
+        print(f"{linhas} Detalhes de uma Carona {linhas}")
+        while True:
+            motorista_email = input("Digite o email do motorista: ")
+            if motorista_email.strip() == "":
+                print("Digite algo!")
+                continue
+            elif motorista_email.find("@") == -1 or motorista_email.find(".") == -1:
+                print("Email inválido!")
+                continue
+            elif motorista_email.isnumeric() or motorista_email.isdecimal():
+                print("Apenas letras!")
+                continue
+            break
+
+        while True:
+            hoje = input("\nVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ")
+            if(hoje == '1'):
+                data_atual = str(date.today())
+                ano_viagem = data_atual[0:4]
+                mes_viagem = data_atual[5:7]
+                dia_viagem = data_atual[8:10]
+                break
+            elif(hoje == '2'):
+                print("Quando vai ser a viagem: ")
+
+                # Valida dia
+                while True:
+                    dia_viagem = input("    Dia: ")
+                    if dia_viagem.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not dia_viagem.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(dia_viagem) < 1 or int(dia_viagem) > 31:
+                        print("Apenas valores entre 1 e 31!")
+                        continue
+                    else:
+                        break
+
+                # Valida mês
+                while True:
+                    mes_viagem = input("    Mês: ")
+                    if mes_viagem.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not mes_viagem.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(mes_viagem) < 1 or int(mes_viagem) > 12:
+                        print("Apenas valores entre 1 e 12!")
+                        continue
+                    else:
+                        break
+                
+                # Valida ano
+                while True:
+                    ano_viagem = input("    Ano: ")
+                    if ano_viagem.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not ano_viagem.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(ano_viagem) < int(ano_atual):
+                        print("Somente anos atuais ou futuros!")
+                        continue
+                    else:
+                        break
+                
+                # Verifica se a data já passou
+                data_informada = date(int(ano_viagem), int(mes_viagem), int(dia_viagem))
+                if data_informada < date.today():
+                    print("Somente data atual ou futura!")
+                    continue
+                break
+            else:
+                print(f"{invalida_opcao}\n")
+                continue
+       
+        data_viagem = f"{dia_viagem if len(dia_viagem) == 2 or dia_viagem[0] == '0' else f'0{dia_viagem}'}/{mes_viagem if len(mes_viagem) == 2 or mes_viagem[0] == '0' else f'0{mes_viagem}'}/{ano_viagem}"
+
+        encontrado_carona = False
+        cont = 0
+        for carona in caronas_cadastradas:
+            if motorista_email == usuarios_cadastrados[carona[0]][1] and data_viagem == carona[3]:
+                encontrado_carona = True
+                print(f"    Motorista: {carona[0]}".center(70))
+                print(f"    Email do Motorista: {usuarios_cadastrados[carona[0]][1]}".center(70))
+                print(f"    Origem: {carona[1]}".center(70))
+                print(f"    Destino: {carona[2]}".center(70))
+                print(f"    Data da Carona: {carona[3]}".center(70))
+                print(f"    Horario: {carona[4]}".center(70))
+                print(f"    Vagas: {carona[5]}".center(70))
+                print(f"    Valor por Vagas: R${carona[6]}".center(70))
+                print(f"{'_' * 70}\n")
+
+                cont += 1
+
+        sleep(cont * 3)
+        os.system("cls" if os.name == 'nt' else 'clear')
+        if encontrado_carona == False:
+            print("Nenhuma carona para essa busca! \n".center(70))
+            sleep(3)
+            os.system("cls" if os.name == 'nt' else 'clear')
+            continue
+
+    # Exibe caronas criadas pelo usuario
+    elif(opcao == '6' and logado == True):
+        print(f"{linhas} Suas Caronas {linhas}")
+        encontrado_carona = False
+        cont = 0
+        for carona in caronas_cadastradas:
+            if carona[0] == usuario_atual:
+                encontrado_carona = True
+                print(f"    Motorista: {carona[0]}".center(70))
+                print(f"    Email do Motorista: {usuarios_cadastrados[carona[0]][1]}".center(70))
+                print(f"    Origem: {carona[1]}".center(70))
+                print(f"    Destino: {carona[2]}".center(70))
+                print(f"    Data da Carona: {carona[3]}".center(70))
+                print(f"    Horario: {carona[4]}".center(70))
+                print(f"    Vagas: {carona[5]}".center(70))
+                print(f"    Valor por Vagas: R${carona[6]}".center(70))
+                print(f"{'_' * 70}\n")
+
+                cont += 1
+
+        sleep(cont * 3)
+        os.system("cls" if os.name == 'nt' else 'clear')
+        if encontrado_carona == False:
+            print("Nenhuma carona para essa busca! \n".center(70))
+            sleep(3)
+            os.system("cls" if os.name == 'nt' else 'clear')
+            continue
+    
+    elif(opcao == '7' and logado == True):
+        while True:
+            motorista_email = input("Digite o email do motorista: ")
+            if motorista_email.strip() == "":
+                print("Digite algo!")
+                continue
+            elif motorista_email.find("@") == -1 or motorista_email.find(".") == -1:
+                print("Email inválido!")
+                continue
+            elif motorista_email.isnumeric() or motorista_email.isdecimal():
+                print("Apenas letras!")
+                continue
+            break
+
+        while True:
+            hoje = input("\nVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ")
+            if(hoje == '1'):
+                data_atual = str(date.today())
+                ano_viagem = data_atual[0:4]
+                mes_viagem = data_atual[5:7]
+                dia_viagem = data_atual[8:10]
+                break
+            elif(hoje == '2'):
+                print("Quando vai ser a viagem: ")
+
+                # Valida dia
+                while True:
+                    dia_viagem = input("    Dia: ")
+                    if dia_viagem.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not dia_viagem.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(dia_viagem) < 1 or int(dia_viagem) > 31:
+                        print("Apenas valores entre 1 e 31!")
+                        continue
+                    else:
+                        break
+
+                # Valida mês
+                while True:
+                    mes_viagem = input("    Mês: ")
+                    if mes_viagem.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not mes_viagem.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(mes_viagem) < 1 or int(mes_viagem) > 12:
+                        print("Apenas valores entre 1 e 12!")
+                        continue
+                    else:
+                        break
+                
+                # Valida ano
+                while True:
+                    ano_viagem = input("    Ano: ")
+                    if ano_viagem.strip() == "":
+                        print("Digite algo!")
+                        continue
+                    elif(not ano_viagem.isdigit()):
+                        print("Apenas números inteiros!")
+                        continue
+                    elif int(ano_viagem) < int(ano_atual):
+                        print("Somente anos atuais ou futuros!")
+                        continue
+                    else:
+                        break
+                
+                # Verifica se a data já passou
+                data_informada = date(int(ano_viagem), int(mes_viagem), int(dia_viagem))
+                if data_informada < date.today():
+                    print("Somente data atual ou futura!")
+                    continue
+                break
+            else:
+                print(f"{invalida_opcao}\n")
+                continue
+       
+        data_viagem = f"{dia_viagem if len(dia_viagem) == 2 or dia_viagem[0] == '0' else f'0{dia_viagem}'}/{mes_viagem if len(mes_viagem) == 2 or mes_viagem[0] == '0' else f'0{mes_viagem}'}/{ano_viagem}"
+
+        removida = False
+        for carona in caronas_cadastradas:
+            if motorista_email == usuarios_cadastrados[carona[0]][1] and data_viagem == carona[3]:
+                if (motorista_email, data_viagem) in caronas_reservadas:
+                    carona[5] += 1
+                    lista_de_reservas = caronas_reservadas[(motorista_email, data_viagem)]
+                    if usuario_atual in lista_de_reservas:
+                        lista_de_reservas.remove(usuario_atual)
+                        removida = True
+                        print("Reserva cancelada!")
+                    else:
+                        print("Você não tinha reserva nessa carona!")
+            else:
+                print("Nenhuma reserva encontrada para essa carona.")
+
+            sleep(3)
+            os.system("cls" if os.name == 'nt' else 'clear')
+            break
+
+        if(removida == False):
+            print("Falha ao remover reserva!")
+            sleep(3)
+            os.system("cls" if os.name == 'nt' else 'clear')
+
+    # Remover carona
+    elif(opcao == '8' and logado == True):
+        for carona in caronas_cadastradas:
+            if(usuario_atual == carona[0]):
+                while True:
+                    hoje = input("\nVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ")
+                    if(hoje == '1'):
+                        data_atual = str(date.today())
+                        ano_viagem = data_atual[0:4]
+                        mes_viagem = data_atual[5:7]
+                        dia_viagem = data_atual[8:10]
+                        break
+                    elif(hoje == '2'):
+                        print("Quando vai ser a viagem: ")
+
+                        # Valida dia
+                        while True:
+                            dia_viagem = input("    Dia: ")
+                            if dia_viagem.strip() == "":
+                                print("Digite algo!")
+                                continue
+                            elif(not dia_viagem.isdigit()):
+                                print("Apenas números inteiros!")
+                                continue
+                            elif int(dia_viagem) < 1 or int(dia_viagem) > 31:
+                                print("Apenas valores entre 1 e 31!")
+                                continue
+                            else:
+                                break
+
+                        # Valida mês
+                        while True:
+                            mes_viagem = input("    Mês: ")
+                            if mes_viagem.strip() == "":
+                                print("Digite algo!")
+                                continue
+                            elif(not mes_viagem.isdigit()):
+                                print("Apenas números inteiros!")
+                                continue
+                            elif int(mes_viagem) < 1 or int(mes_viagem) > 12:
+                                print("Apenas valores entre 1 e 12!")
+                                continue
+                            else:
+                                break
+                        
+                        # Valida ano
+                        while True:
+                            ano_viagem = input("    Ano: ")
+                            if ano_viagem.strip() == "":
+                                print("Digite algo!")
+                                continue
+                            elif(not ano_viagem.isdigit()):
+                                print("Apenas números inteiros!")
+                                continue
+                            elif int(ano_viagem) < int(ano_atual):
+                                print("Somente anos atuais ou futuros!")
+                                continue
+                            else:
+                                break
+                        
+                        # Verifica se a data já passou
+                        data_informada = date(int(ano_viagem), int(mes_viagem), int(dia_viagem))
+                        if data_informada < date.today():
+                            print("Somente data atual ou futura!")
+                            continue
+                        break
+                    else:
+                        print(f"{invalida_opcao}\n")
+                        continue
+            
+                data_viagem = f"{dia_viagem if len(dia_viagem) == 2 or dia_viagem[0] == '0' else f'0{dia_viagem}'}/{mes_viagem if len(mes_viagem) == 2 or mes_viagem[0] == '0' else f'0{mes_viagem}'}/{ano_viagem}"
+
+                for car in caronas_cadastradas:
+                    if car[3] == data_viagem:
+                        caronas_cadastradas.remove(car)
+                        print("Carona removida!")
+                sleep(3)
+                os.system("cls" if os.name == 'nt' else 'clear')
+                
+            else:
+                print("Esta carona não te pertence!")
+                sleep(3)
+                os.system("cls" if os.name == 'nt' else 'clear')
+                continue
 
     # Sair da conta
-    elif(opcao == '5' and logado == True):
+    elif(opcao == '9' and logado == True):
         logado = False
         print("Saindo da conta...")
         sleep(2)
