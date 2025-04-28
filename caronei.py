@@ -3,9 +3,12 @@ import os
 import subprocess
 import sys
 
-# Instala a biblioteca externa pwinput se ela ainda não estiver instalada
+# Instala a biblioteca externa pwinput e deepl se elas ainda não estiverem instaladas
 if(importlib.util.find_spec("pwinput") is None):
     subprocess.check_call([sys.executable, "-m", "pip", "install", "pwinput"])
+    os.system("cls" if os.name == "nt" else "clear")
+if(importlib.util.find_spec("deepl") is None):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "deepl"])
     os.system("cls" if os.name == "nt" else "clear")
 
 
@@ -13,6 +16,157 @@ import pwinput
 from time import sleep
 from datetime import date, datetime
 import time
+
+import re
+import deepl
+
+linhas = "-" * 25
+
+banco_frases = {
+    "titulo_cadastro": f"\033[1;36m{linhas} Cadastro {linhas}",
+    "titulo_usuario": "Usuário",
+    "titulo_login": f"\033[1;36m{linhas} Login {linhas}",
+    "titulo_reservar": f"\033[1;36m{linhas} Reservar Carona {linhas}",
+    "titulo_caronas_disponiveis": f"\033[1;36m{linhas} Caronas Disponíveis {linhas}",
+    "titulo_busca": f"\033[1;36m{linhas} Busca de Caronas {linhas}",
+    "titulo_detalhes": f"\033[1;36m{linhas} Detalhes de uma Carona {linhas}",
+    "titulo_suas_caronas": f"\033[1;36m{linhas} Suas Caronas {linhas}",
+    
+    "opcao_invalida": "\033[1;31mOpção Inválida!",
+    "digite_algo": "\033[1;31mDigite algo!",
+    "apenas_letras": "\033[1;31mApenas letras!",
+    "email_invalido": "\033[1;31mEmail inválido!",
+    "email_cadastrado": "\033[1;31mEmail já cadastrado!",
+    "senha_invalida": "\033[1;31mA senha precisa ter no mínimo 8 caracteres e no máximo 15 caracteres!",
+    "diverge_campo": "\033[1;31mDiverge do campo anterior!",
+    "cadastro_sucesso": "\n\033[1;32mCadastro realizado com sucesso!",
+    "login_falhou": "\033[1;31mFalha ao logar! Tente novamente!",
+    "carona_criada": "\033[1;32mCarona criada com sucesso!",
+    "carona_reservada": "\033[1;32mCarona reservada!",
+    "sem_caronas": "\033[1;31mSem caronas cadastradas!",
+    "nenhuma_carona": "\033[1;31mNenhuma carona para essa busca!",
+    "reserva_cancelada": "\033[1;32mReserva cancelada!",
+    "sem_reserva": "\033[1;31mVocê não tinha reserva nessa carona!",
+    "carona_removida": "\033[1;32mCarona removida!",
+    "nao_permissao": "\033[1;31mEsta carona não te pertence!",
+    "saindo_conta": "\033[1;33mSaindo da conta...",
+    "conta_saiu": "\033[1;32mConcluído!",
+    
+    "bem_vindo": "Bem vido ao ",
+    "opcoes": "Opções",
+    "menu_deslogado": "     [1] Cadastrar Usuário\n     [2] Fazer Login",
+    "oferer_pegar_carona": "     [1] Oferecer Carona\n     [2] Pegar Carona",
+    "menu_logado": "     [3] Listar Todas as Caronas Disponíveis\n     [4] Buscar Carona\n     [5] Mostrar Detalhes da Carona\n     [6] Mostrar Todas as Suas Caronas\n     [7] Cancelar Reserva\n     [8] Remover Carona\n     [9] Logout",
+    "opcao_sair": "     [0] Fechar\n",
+    "selecione_opcao": "\033[1;34mSelecione uma opção >>> \033[m",
+    
+    "digite_nome": "\033[1;36mDigite seu nome: ",
+    "digite_email": "\n\033[1;36mDigite seu email: ",
+    "digite_senha": "\033[1;36mDigite sua senha: ",
+    "confirme_senha": "\033[1;36mDigite sua senha novamente: ",
+    "digite_origem": "\033[1;36mDe onde você vai partir: ",
+    "digite_destino": "\033[1;36mPara onde você vai: ",
+    "digite_vagas": "\033[1;36mQuantas vagas disponíveis: ",
+    "digite_valor": "\033[1;36mQual o valor de cada vaga? R$",
+    "email_motorista": "\033[1;36mDigite o email do motorista: ",
+    "origem_busca": "\033[1;36mDigite a origem buscada: ",
+    "destino_busca": "\033[1;36mDigite o destino buscado: ",
+    
+    "hoje_viagem": "\033[1;36mVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ",
+    "agora_viagem": "\033[1;36mVai ser agora? \n  [1] Sim \n  [2] Não\n>>> ",
+    
+    "quando_viagem": "\033[1;36mQuando vai ser a viagem: ",
+    "dia_viagem": "    Dia: ",
+    "mes_viagem": "    Mês: ",
+    "ano_viagem": "    Ano: ",
+    "hora_viagem": "    Hora: ",
+    "minuto_viagem": "    Minuto: ",
+    
+    "apenas_numeros": "\033[1;31mApenas números!",
+    "apenas_inteiros": "\033[1;31mApenas números inteiros!",
+    "valor_positivo": "\033[1;31mApenas valor positivo!",
+    "data_passada": "\033[1;31mSomente data atual ou futura!",
+    "hora_passada": "\033[1;31mHora já passada!",
+    "ano_invalido": "\033[1;31mSomente anos atuais ou futuros!",
+    "mes_invalido": "\033[1;31mApenas valores entre 1 e 12!",
+    "dia_invalido": "\033[1;31mApenas valores entre 1 e 31!",
+    "hora_invalida": "\033[1;31mApenas números entre 1 e 24!",
+    "minuto_invalido": "\033[1;31mApenas números entre 1 e 59!",
+    "vagas_invalidas": "\033[1;31mApenas uma ou mais vagas!",
+    
+    "sem_vagas": "\033[1;31mNão há mais vagas!",
+    "nao_pegar_propria": "\033[1;31mNão é permitido pegar uma carona que você criou!",
+    "carona_nao_encontrada": "\033[1;31mCarona não encontrada!",
+    "nenhuma_reserva": "\033[1;31mNenhuma reserva encontrada para essa carona.",
+
+    "label_motorista": "\033[1;36mMotorista",
+    "label_email_motorista": "Email do Motorista",
+    "label_origem": "Origem",
+    "label_destino": "Destino",
+    "label_data_carona": "Data da Carona",
+    "label_horario": "Horário",
+    "label_vagas": "Vagas",
+    "label_valor": "Valor por Vagas"
+}
+
+para_traduzir = ""
+
+for chave, frase in banco_frases.items():
+    frase_descolorida = re.sub(r"\033\[[0-9;]*m", "", frase)
+
+    frase_descolorida = frase_descolorida.replace("\n", "##")
+
+    para_traduzir += f"{frase_descolorida}||||"
+
+print("""\033[1;33m
+        [1] Portuguese 
+        [2] English 
+        [3] Spanish 
+        [4] Japanese 
+        [5] Arabic 
+""")
+
+sigla_lingua = ""
+
+nao_traduz = False
+
+while True:
+    lingua_opcao = input("\033[1;33mSelect your language: ")
+    if lingua_opcao.strip() == "":
+        print("\033[1;31mType something!\033[1;m")
+        continue
+    elif(lingua_opcao == '1'):
+        nao_traduz = True
+        break
+    elif(lingua_opcao == '2'):
+        sigla_lingua = "EN-US"
+        break
+    elif(lingua_opcao == '3'):
+        sigla_lingua = "ES"
+        break
+    elif(lingua_opcao == '4'):
+        sigla_lingua = "JA"
+        break
+    elif(lingua_opcao == '5'):
+        sigla_lingua = "AR"
+        break
+    else:
+        print("\033[1;31mInvalid option!\033[1;m")
+        continue
+    
+
+if nao_traduz != True:
+    key = "3696baba-20cf-4935-b424-ac0653d5a413:fx"
+    tradutor = deepl.Translator(key)
+
+    traduzido = tradutor.translate_text(para_traduzir, target_lang=sigla_lingua).text
+    traduzido = traduzido.split("||||")
+    
+    for chave, frases_traduzidas in zip(banco_frases.keys(), traduzido):
+        frases_traduzidas = frases_traduzidas.replace("##", "\n")
+        banco_frases[chave] = frases_traduzidas
+
+
 
 caronei = """
    ______   ___       ____     ____     _   __   ______   ____   __
@@ -29,42 +183,38 @@ usuario_atual = -1
 logado = False
 logout_opcao = ""
 cad_log_opcao = ""
-invalida_opcao = "Opção Inválida!"
+invalida_opcao = banco_frases["opcao_invalida"]
 
 while True:
-    linhas = "-" * 25
-
     # Mostra sessão de usuário com nome
     if(logado == True and usuario_atual != -1):
         print(f"\n\n\033[1;34m{linhas*2}\n") 
-        nome_estilizado = f"Usuário: {usuarios_cadastrados[usuario_atual][0]}".center(50).upper()
-        print(f"\033[3;35m{nome_estilizado}\033[m")
+
+        str_usuario = banco_frases['titulo_usuario']
+
+        nome_estilizado = f"{str_usuario}: {usuarios_cadastrados[usuario_atual][0]}".center(50).upper()
+        print(f"\033[3;34m{nome_estilizado}\033[m")
         print(f"\n\033[1;34m{linhas*2}")
     
+    str_bem_vindo = banco_frases['bem_vindo']
+    str_opcoes = banco_frases['opcoes']
 
     # Painel de boas vindas e opções
-    print(f"\n\033[1;34mBem vindo ao\n\n{caronei}\n\n\033[1;34mOpções:\n")
+    print(f"\n\033[1;34m{str_bem_vindo}\n\n{caronei}\n\n\033[1;34m{str_opcoes}:\n")
     if(logado == False):
-        print("     [1] Cadastrar Usuário\n     [2] Fazer Login")
+        print(banco_frases['menu_deslogado'])
     else:
-            print("     [1] Oferecer Carona")
-            print("     [2] Pegar Carona")
+        print(banco_frases['oferer_pegar_carona'])
     if(logado == True):
-        print("     [3] Listar Todas as Caronas Disponíveis")
-        print("     [4] Buscar Carona")
-        print("     [5] Motrar Detalhes da Carona")
-        print("     [6] Mostrar Todas as Suas Caronas")
-        print("     [7] Cancelar Reserva")
-        print("     [8] Remover Carona")
-        print("     [9] Logout")
-    print("     [0] Fechar\n")
+        print(banco_frases['menu_logado'])
+    print(banco_frases['opcao_sair'])
 
-    opcao = input("\033[1;34mSelecione uma opção >>> \033[m")
+    opcao = input(banco_frases['selecione_opcao'])
     print("\n")
 
     # Valida se o usuário não digitar nada
     if(opcao.strip() == ""):
-        print("Digite algo!")
+        print(banco_frases['digite_algo'])
         sleep(1)
         os.system("cls" if os.name == 'nt' else 'clear')
         continue
@@ -78,36 +228,36 @@ while True:
 
     # Cadastro de usuários e validações
     elif(opcao == '1' and logado == False):
-        print(f"{linhas} Cadastro {linhas}")
+        print(banco_frases['titulo_cadastro'])
 
         while True:
-            nome = input("\nDigite seu nome: ").title()
+            nome = input(banco_frases['digite_nome']).title()
             if nome.strip() == "":
-                print("Digite algo!")
+                print(banco_frases['digite_algo'])
                 continue
             elif nome.isnumeric() or nome.isdecimal():
-                print("Apenas letras!")
+                print(banco_frases['apenas_letras'])
                 continue
             elif not all(palavra.isalpha() for palavra in nome.split()):
-                print("Apenas letras!")
+                print(banco_frases['apenas_letras'])
                 continue
             break
         
         while True:
-            email = input("\nDigite seu email: ")
+            email = input(banco_frases['digite_email'])
             if email.strip() == "":
-                print("Digite algo!")
+                print(banco_frases['digite_algo'])
                 continue
             elif email.find("@") == -1 or email.find(".") == -1:
-                print("Email inválido!")
+                print(banco_frases['email_invalido'])
                 continue
             elif email.isnumeric() or email.isdecimal():
-                print("Apenas letras!")
+                print(banco_frases['apenas_letras'])
                 continue
             cadastrado = False
             for usu in usuarios_cadastrados:
                 if(email == usu[1]):
-                    print("Email já cadastrado!")
+                    print(banco_frases['email_cadastrado'])
                     cadastrado = True
                     break
 
@@ -117,23 +267,26 @@ while True:
             break
 
         while True:
-            senha = pwinput.pwinput(prompt="\nDigite sua senha: ", mask="•")
+            str_senha = banco_frases['digite_senha']
+
+            senha = pwinput.pwinput(prompt=f"\n{str_senha}", mask="•")
             if senha.strip() == "":
-                print("Digite algo!")
+                print(banco_frases['digite_algo'])
                 continue
             elif len(senha) < 8 or len(senha) > 15:
-                print("A senha precisa ter no mínimo 8 caracteres e no máximo 15 caracteres!")
+                print(banco_frases['senha_invalida'])
                 continue
             break
 
         while True:
-            confirmar_senha = pwinput.pwinput(prompt="\nDigite sua senha novamente: ", mask="•")
+            str_senha_novamente = banco_frases['confirme_senha']
+            confirmar_senha = pwinput.pwinput(prompt=f"\n{str_senha_novamente}", mask="•")
             if(confirmar_senha != senha):
-                print("Diverge do campo anterior!")
+                print(banco_frases['diverge_campo'])
                 continue
             break
 
-        print("\nCadastro realizado com sucesso!")
+        print(banco_frases['cadastro_sucesso'])
         sleep(1)
 
         usuarios_cadastrados.append([nome, email, senha])
@@ -143,21 +296,21 @@ while True:
     # Oferecer Carona e validações
     elif(opcao == '1' and logado == True):
         while True:      
-            origem = input("De onde você vai partir: ").title()
+            origem = input(banco_frases['digite_origem']).title()
             if origem.strip() == "":
-                print("Digite algo!")
+                print(banco_frases['digite_algo'])
                 continue
             elif origem.isnumeric() or origem.isdecimal():
-                print("Apenas letras!")
+                print(banco_frases['apenas_letras'])
                 continue
             break
         while True:
-            destino = input("\nPara onde você vai: ").title()
+            destino = input(banco_frases['digite_destino']).title()
             if destino.strip() == "":
-                print("Digite algo!")
+                print(banco_frases['digite_algo'])
                 continue
             elif destino.isnumeric() or destino.isdecimal():
-                print("Apenas letras!")
+                print(banco_frases['apenas_letras'])
                 continue
             break
         
@@ -175,56 +328,56 @@ while True:
 
         # Bloco de data e tratamentos
         while True:
-            hoje = input("\nVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ")
+            hoje = input(banco_frases['hoje_viagem'])
             if(hoje == '1'):
                 ano_viagem = data_atual[0:4]
                 mes_viagem = data_atual[5:7]
                 dia_viagem = data_atual[8:10]
                 break
             elif(hoje == '2'):
-                print("Quando vai ser a viagem: ")
+                print(banco_frases['quando_viagem'])
 
                 # Valida dia
                 while True:
-                    dia_viagem = input("    Dia: ")
+                    dia_viagem = input(banco_frases['dia_viagem'])
                     if dia_viagem.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not dia_viagem.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(dia_viagem) < 1 or int(dia_viagem) > 31:
-                        print("Apenas valores entre 1 e 31!")
+                        print(banco_frases['dia_invalido'])
                         continue
                     else:
                         break
 
                 # Valida mês
                 while True:
-                    mes_viagem = input("    Mês: ")
+                    mes_viagem = input(banco_frases['mes_viagem'])
                     if mes_viagem.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not mes_viagem.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(mes_viagem) < 1 or int(mes_viagem) > 12:
-                        print("Apenas valores entre 1 e 12!")
+                        print(banco_frases['mes_invalido'])
                         continue
                     else:
                         break
                 
                 # Valida ano
                 while True:
-                    ano_viagem = input("    Ano: ")
+                    ano_viagem = input(banco_frases['ano_viagem'])
                     if ano_viagem.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not ano_viagem.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(ano_viagem) < int(ano_atual):
-                        print("Somente anos atuais ou futuros!")
+                        print(banco_frases['ano_invalido'])
                         continue
                     else:
                         break
@@ -232,7 +385,7 @@ while True:
                 # Verifica se a data já passou
                 data_informada = date(int(ano_viagem), int(mes_viagem), int(dia_viagem))
                 if data_informada < date.today():
-                    print("Somente data atual ou futura!")
+                    print(banco_frases['data_passada'])
                     continue
 
                 break
@@ -244,7 +397,7 @@ while True:
 
         # Bloco hora e validações
         while True:
-            hoje = input("\nVai ser agora? \n  [1] Sim \n  [2] Não\n>>> ")
+            hoje = input(banco_frases['agora_viagem'])
 
             hora = ""
             minutos = ""
@@ -259,30 +412,30 @@ while True:
 
                 # Valida hora
                 while True:
-                    hora = input("    Hora: ")
+                    hora = input(banco_frases['hora_viagem'])
                     if hora.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not hora.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(hora) < 0 or int(hora) > 24:
-                        print("Apenas números entre 1 e 24!")
+                        print(banco_frases['hora_invalida'])
                         continue
                     else:
                         break
                 
                 # Valida minutos
                 while True:
-                    minutos = input("    Minuto: ")
+                    minutos = input(banco_frases['minuto_viagem'])
                     if minutos.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not minutos.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif (int(minutos) < 0 or int(minutos) > 59):
-                        print("Apenas números entre 1 e 59!")
+                        print(banco_frases['minuto_invalido'])
                         continue
                     else:
                         break
@@ -292,7 +445,7 @@ while True:
                     h_atual = datetime.now().hour
                     m_atual = datetime.now().minute
                     if int(hora) < h_atual or (int(hora) == h_atual and int(minutos) <= m_atual):
-                        print("Hora já passada!")
+                        print(banco_frases['hora_passada'])
                         continue
                 break
 
@@ -300,18 +453,18 @@ while True:
 
         # Validando vagas
         while True:
-            vagas = input("Quantas vagas disponíveis: ")
+            vagas = input(banco_frases['digite_vagas'])
             if vagas.strip() == "":
-                print("Digite algo!")
+                print(banco_frases['digite_algo'])
                 continue
             elif(vagas.isalpha()):
-                print("Apenas números!")
+                print(banco_frases['apenas_numeros'])
                 continue
             elif(int(vagas) < 1):
-                 print("Apenas uma ou mais vagas!")
+                 print(banco_frases['vagas_invalidas'])
                  continue
             elif(not vagas.isdecimal()):
-                 print("Apenas números inteiros!")
+                 print(banco_frases['apenas_inteiros'])
                  continue
             else:
                  break
@@ -319,22 +472,22 @@ while True:
 
         # Validando preço por vagas
         while True:
-            valor_por_vagas = input("Qual o valor de cada vaga? R$")
+            valor_por_vagas = input(banco_frases['digite_valor'])
 
             if valor_por_vagas.strip() == "":
-                print("Digite algo!")
+                print(banco_frases['digite_algo'])
                 continue
             elif(valor_por_vagas.isalpha()):
-                print("Apenas números!")
+                print(banco_frases['apenas_numeros'])
                 continue
             elif(float(valor_por_vagas) < 0):
-                print("Apenas valor positivo!")
+                print(banco_frases['valor_positivo'])
             else:
                 break
         
         caronas_cadastradas.append([usuario_atual, origem, destino, data_viagem, horario, int(vagas), f"{float(valor_por_vagas):.2f}"])
 
-        print("\nCarona criada com sucesso!")
+        print(f"\n{banco_frases['carona_criada']}")
         sleep(1)
         os.system("cls" if os.name == 'nt' else 'clear')
 
@@ -343,27 +496,27 @@ while True:
     if(opcao == '2' and logado == False):
         while True:
             login_email = ""
-            print(f"{linhas} Login {linhas}")
+            print(banco_frases['titulo_login'])
             while True:
-                login_email = input("Digite o seu email: ")
+                login_email = input(banco_frases['digite_email'])
                 if login_email.strip() == "":
-                    print("Digite algo!")
+                    print(banco_frases['digite_algo'])
                     continue
                 elif login_email.find("@") == -1 or login_email.find(".") == -1:
-                    print("Email inválido!")
+                    print(banco_frases['email_invalido'])
                     continue
                 elif login_email.isnumeric() or login_email.isdecimal():
-                    print("Apenas letras!")
+                    print(banco_frases['apenas_letras'])
                     continue
                 break
 
             while True:
-                login_senha = pwinput.pwinput(prompt="\nDigite o sua senha: ", mask="•")
+                login_senha = pwinput.pwinput(prompt=f"\n{banco_frases['digite_senha']}", mask="•")
                 if login_senha.strip() == "":
-                    print("Digite algo!")
+                    print(banco_frases['digite_algo'])
                     continue
                 elif len(login_senha) < 8 or len(login_senha) > 15:
-                    print("A senha precisa ter no mínimo 8 caracteres e no máximo 15 caracteres!")
+                    print(banco_frases['senha_invalida'])
                     continue
                 break
 
@@ -378,27 +531,27 @@ while True:
             break
 
         if(logado == False):
-            print("Falha ao logar! Tente novamente!")
+            print(banco_frases['login_falhou'])
             continue
 
     # Pegar Carona
     elif(opcao == '2' and logado == True):
-        print(f"{linhas} Reservar Carona {linhas}")
+        print(banco_frases['titulo_reservar'])
         while True:
-            motorista_email = input("Digite o email do motorista: ")
+            motorista_email = input(banco_frases['email_motorista'])
             if motorista_email.strip() == "":
-                print("Digite algo!")
+                print(banco_frases['digite_algo'])
                 continue
             elif motorista_email.find("@") == -1 or motorista_email.find(".") == -1:
-                print("Email inválido!")
+                print(banco_frases['email_invalido'])
                 continue
             elif motorista_email.isnumeric() or motorista_email.isdecimal():
-                print("Apenas letras!")
+                print(banco_frases['apenas_letras'])
                 continue
             break
 
         while True:
-            hoje = input("\nVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ")
+            hoje = input(banco_frases['hoje_viagem'])
             if(hoje == '1'):
                 data_atual = str(date.today())
                 ano_viagem = data_atual[0:4]
@@ -406,49 +559,49 @@ while True:
                 dia_viagem = data_atual[8:10]
                 break
             elif(hoje == '2'):
-                print("Quando vai ser a viagem: ")
+                print(banco_frases['quando_viagem'])
 
                 # Valida dia
                 while True:
-                    dia_viagem = input("    Dia: ")
+                    dia_viagem = input(banco_frases['dia_viagem'])
                     if dia_viagem.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not dia_viagem.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(dia_viagem) < 1 or int(dia_viagem) > 31:
-                        print("Apenas valores entre 1 e 31!")
+                        print(banco_frases['dia_invalido'])
                         continue
                     else:
                         break
 
                 # Valida mês
                 while True:
-                    mes_viagem = input("    Mês: ")
+                    mes_viagem = input(banco_frases['mes_viagem'])
                     if mes_viagem.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not mes_viagem.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(mes_viagem) < 1 or int(mes_viagem) > 12:
-                        print("Apenas valores entre 1 e 12!")
+                        print(banco_frases['mes_invalido'])
                         continue
                     else:
                         break
                 
                 # Valida ano
                 while True:
-                    ano_viagem = input("    Ano: ")
+                    ano_viagem = input(banco_frases['ano_viagem'])
                     if ano_viagem.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not ano_viagem.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(ano_viagem) < int(ano_atual):
-                        print("Somente anos atuais ou futuros!")
+                        print(banco_frases['ano_invalido'])
                         continue
                     else:
                         break
@@ -456,7 +609,7 @@ while True:
                 # Verifica se a data já passou
                 data_informada = date(int(ano_viagem), int(mes_viagem), int(dia_viagem))
                 if data_informada < date.today():
-                    print("Somente data atual ou futura!")
+                    print(banco_frases['data_passada'])
                     continue
                 break
             else:
@@ -473,19 +626,19 @@ while True:
                 if(motorista_email, data_viagem) not in caronas_reservadas:
                     caronas_reservadas[(motorista_email, data_viagem)] = []
                 caronas_reservadas[(motorista_email, data_viagem)].append(usuario_atual)
-                print("\nCarona reservada!")
+                print(f"\n{banco_frases['carona_reservada']}")
                 sleep(3)
                 os.system("cls" if os.name == 'nt' else 'clear')
                 break
             elif carona[5] == 0:
-                print("Não há mais vagas!")
+                print(banco_frases['sem_vagas'])
                 informações_validadas = False
             elif usuarios_cadastrados[usuario_atual][1] == motorista_email:
-                print("Não é permitido pegar uma carona que você criou!")
+                print(banco_frases['nao_pegar_propria'])
                 informações_validadas = False
             else:
                 informações_validadas = False
-                print("Carona não encontrada!")
+                print(banco_frases['carona_nao_encontrada'])
         
         if informações_validadas == False:
             sleep(3)
@@ -495,21 +648,31 @@ while True:
 
     # Listar todas as caronas
     elif (opcao == '3' and logado == True):
-        print(f"{linhas} Caronas Disponíveis {linhas}\n")
+        print(banco_frases['titulo_caronas_disponiveis'] + "\n")
         if(len(caronas_cadastradas) == 0):
-            print("Sem caronas cadastradas! \n".center(70))
+            print(f"{banco_frases['sem_caronas']} \n".center(70))
             sleep(3)
             os.system("cls" if os.name == 'nt' else 'clear')
+
         else:
+            str_motorista = banco_frases['label_motorista']
+            str_email_motorista = banco_frases['label_email_motorista']
+            str_origem = banco_frases['label_origem']
+            str_destino = banco_frases['label_destino']
+            str_data_carona = banco_frases['label_data_carona']
+            str_horario = banco_frases['label_horario']
+            str_vagas = banco_frases['label_vagas']
+            str_valor = banco_frases['label_valor']
+
             for carona in caronas_cadastradas:
-                print(f"    Motorista: {carona[0]}".center(70))
-                print(f"    Email do Motorista: {usuarios_cadastrados[carona[0]][1]}".center(70))
-                print(f"    Origem: {carona[1]}".center(70))
-                print(f"    Destino: {carona[2]}".center(70))
-                print(f"    Data da Carona: {carona[3]}".center(70))
-                print(f"    Horario: {carona[4]}".center(70))
-                print(f"    Vagas: {carona[5]}".center(70))
-                print(f"    Valor por Vagas: R${carona[6]}".center(70))
+                print(f"    {str_motorista}: {carona[0]}".center(70))
+                print(f"    {str_email_motorista}: {usuarios_cadastrados[carona[0]][1]}".center(70))
+                print(f"    {str_origem}: {carona[1]}".center(70))
+                print(f"    {str_destino}: {carona[2]}".center(70))
+                print(f"    {str_data_carona}: {carona[3]}".center(70))
+                print(f"    {str_horario}: {carona[4]}".center(70))
+                print(f"    {str_vagas}: {carona[5]}".center(70))
+                print(f"    {str_valor}: R${carona[6]}".center(70))
                 print(f"{'_' * 70}\n")
 
             tempo = len(caronas_cadastradas) * 4
@@ -518,39 +681,48 @@ while True:
     
     # Busca todas a caronas
     elif(opcao == '4' and logado == True):
-        print(f"{linhas} Busca de Caronas {linhas}")
+        print(banco_frases['titulo_busca'])
         while True:      
-            origem_busca = input("\nDigite a origem buscada: ").title()
+            origem_busca = input(f"\n{banco_frases['origem_busca']}").title()
             if origem_busca.strip() == "":
-                print("Digite algo!")
+                print(banco_frases['digite_algo'])
                 continue
             elif origem_busca.isnumeric() or origem_busca.isdecimal():
-                print("Apenas letras!")
+                print(banco_frases['apenas_letras'])
                 continue
             break
         while True:
-            destino_busca = input("\nDigite o destino buscado: ").title()
+            destino_busca = input(f"\n{banco_frases['destino_busca']}").title()
             if destino_busca.strip() == "":
-                print("Digite algo!")
+                print(banco_frases['digite_algo'])
                 continue
             elif destino_busca.isnumeric() or destino_busca.isdecimal():
-                print("Apenas letras!")
+                print(banco_frases['apenas_letras'])
                 continue
             break
         print("\n")
         encontrado_carona = False
         cont = 0
+        str_motorista = banco_frases['label_motorista']
+        str_email_motorista = banco_frases['label_email_motorista']
+        str_origem = banco_frases['label_origem']
+        str_destino = banco_frases['label_destino']
+        str_data_carona = banco_frases['label_data_carona']
+        str_horario = banco_frases['label_horario']
+        str_vagas = banco_frases['label_vagas']
+        str_valor = banco_frases['label_valor']
+
         for carona in caronas_cadastradas:
             if origem_busca == carona[1] and destino_busca == carona[2]:
                 encontrado_carona = True
-                print(f"    Motorista: {carona[0]}".center(70))
-                print(f"    Email do Motorista: {usuarios_cadastrados[carona[0]][1]}".center(70))
-                print(f"    Origem: {carona[1]}".center(70))
-                print(f"    Destino: {carona[2]}".center(70))
-                print(f"    Data da Carona: {carona[3]}".center(70))
-                print(f"    Horario: {carona[4]}".center(70))
-                print(f"    Vagas: {carona[5]}".center(70))
-                print(f"    Valor por Vagas: R${carona[6]}".center(70))
+                print(f"    {str_motorista}: {carona[0]}".center(70))
+                print(f"    {str_email_motorista}: {usuarios_cadastrados[carona[0]][1]}".center(70))
+                print(f"    {str_origem}: {carona[1]}".center(70))
+                print(f"    {str_destino}: {carona[2]}".center(70))
+                print(f"    {str_data_carona}: {carona[3]}".center(70))
+                print(f"    {str_horario}: {carona[4]}".center(70))
+                print(f"    {str_vagas}: {carona[5]}".center(70))
+                print(f"    {str_valor}: R${carona[6]}".center(70))
                 print(f"{'_' * 70}\n")
 
                 cont += 1
@@ -559,29 +731,29 @@ while True:
         os.system("cls" if os.name == 'nt' else 'clear')
 
         if encontrado_carona == False:
-            print("Nenhuma carona para essa busca! \n".center(70))
+            print(f"{banco_frases['nenhuma_carona']} \n".center(70))
             sleep(3)
             os.system("cls" if os.name == 'nt' else 'clear')
             continue
 
     # Mostrar Detalhes de uma Carona
     elif(opcao == '5' and logado == True):
-        print(f"{linhas} Detalhes de uma Carona {linhas}")
+        print(banco_frases['titulo_detalhes'])
         while True:
-            motorista_email = input("Digite o email do motorista: ")
+            motorista_email = input(banco_frases['email_motorista'])
             if motorista_email.strip() == "":
-                print("Digite algo!")
+                print(banco_frases['digite_algo'])
                 continue
             elif motorista_email.find("@") == -1 or motorista_email.find(".") == -1:
-                print("Email inválido!")
+                print(banco_frases['email_invalido'])
                 continue
             elif motorista_email.isnumeric() or motorista_email.isdecimal():
-                print("Apenas letras!")
+                print(banco_frases['apenas_letras'])
                 continue
             break
 
         while True:
-            hoje = input("\nVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ")
+            hoje = input(banco_frases['hoje_viagem'])
             if(hoje == '1'):
                 data_atual = str(date.today())
                 ano_viagem = data_atual[0:4]
@@ -589,49 +761,49 @@ while True:
                 dia_viagem = data_atual[8:10]
                 break
             elif(hoje == '2'):
-                print("Quando vai ser a viagem: ")
+                print(banco_frases['quando_viagem'])
 
                 # Valida dia
                 while True:
-                    dia_viagem = input("    Dia: ")
+                    dia_viagem = input(banco_frases['dia_viagem'])
                     if dia_viagem.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not dia_viagem.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(dia_viagem) < 1 or int(dia_viagem) > 31:
-                        print("Apenas valores entre 1 e 31!")
+                        print(banco_frases['dia_invalido'])
                         continue
                     else:
                         break
 
                 # Valida mês
                 while True:
-                    mes_viagem = input("    Mês: ")
+                    mes_viagem = input(banco_frases['mes_viagem'])
                     if mes_viagem.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not mes_viagem.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(mes_viagem) < 1 or int(mes_viagem) > 12:
-                        print("Apenas valores entre 1 e 12!")
+                        print(banco_frases['mes_invalido'])
                         continue
                     else:
                         break
                 
                 # Valida ano
                 while True:
-                    ano_viagem = input("    Ano: ")
+                    ano_viagem = input(banco_frases['ano_viagem'])
                     if ano_viagem.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not ano_viagem.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(ano_viagem) < int(ano_atual):
-                        print("Somente anos atuais ou futuros!")
+                        print(banco_frases['ano_invalido'])
                         continue
                     else:
                         break
@@ -639,7 +811,7 @@ while True:
                 # Verifica se a data já passou
                 data_informada = date(int(ano_viagem), int(mes_viagem), int(dia_viagem))
                 if data_informada < date.today():
-                    print("Somente data atual ou futura!")
+                    print(banco_frases['data_passada'])
                     continue
                 break
             else:
@@ -650,17 +822,25 @@ while True:
 
         encontrado_carona = False
         cont = 0
+        str_motorista = banco_frases['label_motorista']
+        str_email_motorista = banco_frases['label_email_motorista']
+        str_origem = banco_frases['label_origem']
+        str_destino = banco_frases['label_destino']
+        str_data_carona = banco_frases['label_data_carona']
+        str_horario = banco_frases['label_horario']
+        str_vagas = banco_frases['label_vagas']
+        str_valor = banco_frases['label_valor']
         for carona in caronas_cadastradas:
             if motorista_email == usuarios_cadastrados[carona[0]][1] and data_viagem == carona[3]:
                 encontrado_carona = True
-                print(f"    Motorista: {carona[0]}".center(70))
-                print(f"    Email do Motorista: {usuarios_cadastrados[carona[0]][1]}".center(70))
-                print(f"    Origem: {carona[1]}".center(70))
-                print(f"    Destino: {carona[2]}".center(70))
-                print(f"    Data da Carona: {carona[3]}".center(70))
-                print(f"    Horario: {carona[4]}".center(70))
-                print(f"    Vagas: {carona[5]}".center(70))
-                print(f"    Valor por Vagas: R${carona[6]}".center(70))
+                print(f"    {str_motorista}: {carona[0]}".center(70))
+                print(f"    {str_email_motorista}: {usuarios_cadastrados[carona[0]][1]}".center(70))
+                print(f"    {str_origem}: {carona[1]}".center(70))
+                print(f"    {str_destino}: {carona[2]}".center(70))
+                print(f"    {str_data_carona}: {carona[3]}".center(70))
+                print(f"    {str_horario}: {carona[4]}".center(70))
+                print(f"    {str_vagas}: {carona[5]}".center(70))
+                print(f"    {str_valor}: R${carona[6]}".center(70))
                 print(f"{'_' * 70}\n")
 
                 cont += 1
@@ -668,27 +848,37 @@ while True:
         sleep(cont * 3)
         os.system("cls" if os.name == 'nt' else 'clear')
         if encontrado_carona == False:
-            print("Nenhuma carona para essa busca! \n".center(70))
+            print(f"{banco_frases['nenhuma_carona']} \n".center(70))
             sleep(3)
             os.system("cls" if os.name == 'nt' else 'clear')
             continue
 
     # Exibe caronas criadas pelo usuario
     elif(opcao == '6' and logado == True):
-        print(f"{linhas} Suas Caronas {linhas}")
+        print(banco_frases['titulo_suas_caronas'])
         encontrado_carona = False
         cont = 0
+
+        str_motorista = banco_frases['label_motorista']
+        str_email_motorista = banco_frases['label_email_motorista']
+        str_origem = banco_frases['label_origem']
+        str_destino = banco_frases['label_destino']
+        str_data_carona = banco_frases['label_data_carona']
+        str_horario = banco_frases['label_horario']
+        str_vagas = banco_frases['label_vagas']
+        str_valor = banco_frases['label_valor']
+
         for carona in caronas_cadastradas:
             if carona[0] == usuario_atual:
                 encontrado_carona = True
-                print(f"    Motorista: {carona[0]}".center(70))
-                print(f"    Email do Motorista: {usuarios_cadastrados[carona[0]][1]}".center(70))
-                print(f"    Origem: {carona[1]}".center(70))
-                print(f"    Destino: {carona[2]}".center(70))
-                print(f"    Data da Carona: {carona[3]}".center(70))
-                print(f"    Horario: {carona[4]}".center(70))
-                print(f"    Vagas: {carona[5]}".center(70))
-                print(f"    Valor por Vagas: R${carona[6]}".center(70))
+                str_motorista = banco_frases['label_motorista']
+                str_email_motorista = banco_frases['label_email_motorista']
+                str_origem = banco_frases['label_origem']
+                str_destino = banco_frases['label_destino']
+                str_data_carona = banco_frases['label_data_carona']
+                str_horario = banco_frases['label_horario']
+                str_vagas = banco_frases['label_vagas']
+                str_valor = banco_frases['label_valor']
                 print(f"{'_' * 70}\n")
 
                 cont += 1
@@ -696,27 +886,27 @@ while True:
         sleep(cont * 3)
         os.system("cls" if os.name == 'nt' else 'clear')
         if encontrado_carona == False:
-            print("Nenhuma carona para essa busca! \n".center(70))
+            print(f"{banco_frases['nenhuma_carona']} \n".center(70))
             sleep(3)
             os.system("cls" if os.name == 'nt' else 'clear')
             continue
     
     elif(opcao == '7' and logado == True):
         while True:
-            motorista_email = input("Digite o email do motorista: ")
+            motorista_email = input(banco_frases['email_motorista'])
             if motorista_email.strip() == "":
-                print("Digite algo!")
+                print(banco_frases['digite_algo'])
                 continue
             elif motorista_email.find("@") == -1 or motorista_email.find(".") == -1:
-                print("Email inválido!")
+                print(banco_frases['email_invalido'])
                 continue
             elif motorista_email.isnumeric() or motorista_email.isdecimal():
-                print("Apenas letras!")
+                print(banco_frases['apenas_letras'])
                 continue
             break
 
         while True:
-            hoje = input("\nVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ")
+            hoje = input(banco_frases['hoje_viagem'])
             if(hoje == '1'):
                 data_atual = str(date.today())
                 ano_viagem = data_atual[0:4]
@@ -724,49 +914,49 @@ while True:
                 dia_viagem = data_atual[8:10]
                 break
             elif(hoje == '2'):
-                print("Quando vai ser a viagem: ")
+                print(banco_frases['quando_viagem'])
 
                 # Valida dia
                 while True:
-                    dia_viagem = input("    Dia: ")
+                    dia_viagem = input(banco_frases['dia_viagem'])
                     if dia_viagem.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not dia_viagem.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(dia_viagem) < 1 or int(dia_viagem) > 31:
-                        print("Apenas valores entre 1 e 31!")
+                        print(banco_frases['dia_invalido'])
                         continue
                     else:
                         break
 
                 # Valida mês
                 while True:
-                    mes_viagem = input("    Mês: ")
+                    mes_viagem = input(banco_frases['mes_viagem'])
                     if mes_viagem.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not mes_viagem.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(mes_viagem) < 1 or int(mes_viagem) > 12:
-                        print("Apenas valores entre 1 e 12!")
+                        print(banco_frases['mes_invalido'])
                         continue
                     else:
                         break
                 
                 # Valida ano
                 while True:
-                    ano_viagem = input("    Ano: ")
+                    ano_viagem = input(banco_frases['ano_viagem'])
                     if ano_viagem.strip() == "":
-                        print("Digite algo!")
+                        print(banco_frases['digite_algo'])
                         continue
                     elif(not ano_viagem.isdigit()):
-                        print("Apenas números inteiros!")
+                        print(banco_frases['apenas_inteiros'])
                         continue
                     elif int(ano_viagem) < int(ano_atual):
-                        print("Somente anos atuais ou futuros!")
+                        print(banco_frases['ano_invalido'])
                         continue
                     else:
                         break
@@ -774,7 +964,7 @@ while True:
                 # Verifica se a data já passou
                 data_informada = date(int(ano_viagem), int(mes_viagem), int(dia_viagem))
                 if data_informada < date.today():
-                    print("Somente data atual ou futura!")
+                    print(banco_frases['data_passada'])
                     continue
                 break
             else:
@@ -792,11 +982,11 @@ while True:
                     if usuario_atual in lista_de_reservas:
                         lista_de_reservas.remove(usuario_atual)
                         removida = True
-                        print("Reserva cancelada!")
+                        print(banco_frases['reserva_cancelada'])
                     else:
-                        print("Você não tinha reserva nessa carona!")
+                        print(banco_frases['sem_reserva'])
             else:
-                print("Nenhuma reserva encontrada para essa carona.")
+                print(banco_frases['nenhuma_reserva'])
 
             sleep(3)
             os.system("cls" if os.name == 'nt' else 'clear')
@@ -812,7 +1002,7 @@ while True:
         for carona in caronas_cadastradas:
             if(usuario_atual == carona[0]):
                 while True:
-                    hoje = input("\nVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ")
+                    hoje = input(banco_frases['hoje_viagem'])
                     if(hoje == '1'):
                         data_atual = str(date.today())
                         ano_viagem = data_atual[0:4]
@@ -820,49 +1010,49 @@ while True:
                         dia_viagem = data_atual[8:10]
                         break
                     elif(hoje == '2'):
-                        print("Quando vai ser a viagem: ")
+                        print(banco_frases['quando_viagem'])
 
                         # Valida dia
                         while True:
-                            dia_viagem = input("    Dia: ")
+                            dia_viagem = input(banco_frases['dia_viagem'])
                             if dia_viagem.strip() == "":
-                                print("Digite algo!")
+                                print(banco_frases['digite_algo'])
                                 continue
                             elif(not dia_viagem.isdigit()):
-                                print("Apenas números inteiros!")
+                                print(banco_frases['apenas_inteiros'])
                                 continue
                             elif int(dia_viagem) < 1 or int(dia_viagem) > 31:
-                                print("Apenas valores entre 1 e 31!")
+                                print(banco_frases['dia_invalido'])
                                 continue
                             else:
                                 break
 
                         # Valida mês
                         while True:
-                            mes_viagem = input("    Mês: ")
+                            mes_viagem = input(banco_frases['mes_viagem'])
                             if mes_viagem.strip() == "":
-                                print("Digite algo!")
+                                print(banco_frases['digite_algo'])
                                 continue
                             elif(not mes_viagem.isdigit()):
-                                print("Apenas números inteiros!")
+                                print(banco_frases['apenas_inteiros'])
                                 continue
                             elif int(mes_viagem) < 1 or int(mes_viagem) > 12:
-                                print("Apenas valores entre 1 e 12!")
+                                print(banco_frases['mes_invalido'])
                                 continue
                             else:
                                 break
                         
                         # Valida ano
                         while True:
-                            ano_viagem = input("    Ano: ")
+                            ano_viagem = input(banco_frases['ano_viagem'])
                             if ano_viagem.strip() == "":
-                                print("Digite algo!")
+                                print(banco_frases['digite_algo'])
                                 continue
                             elif(not ano_viagem.isdigit()):
-                                print("Apenas números inteiros!")
+                                print(banco_frases['apenas_inteiros'])
                                 continue
                             elif int(ano_viagem) < int(ano_atual):
-                                print("Somente anos atuais ou futuros!")
+                                print(banco_frases['ano_invalido'])
                                 continue
                             else:
                                 break
@@ -870,7 +1060,7 @@ while True:
                         # Verifica se a data já passou
                         data_informada = date(int(ano_viagem), int(mes_viagem), int(dia_viagem))
                         if data_informada < date.today():
-                            print("Somente data atual ou futura!")
+                            print(banco_frases['data_passada'])
                             continue
                         break
                     else:
@@ -882,12 +1072,12 @@ while True:
                 for car in caronas_cadastradas:
                     if car[3] == data_viagem:
                         caronas_cadastradas.remove(car)
-                        print("Carona removida!")
+                        print(banco_frases['carona_removida'])
                 sleep(3)
                 os.system("cls" if os.name == 'nt' else 'clear')
-                
+
             else:
-                print("Esta carona não te pertence!")
+                print(banco_frases['nao_permissao'])
                 sleep(3)
                 os.system("cls" if os.name == 'nt' else 'clear')
                 continue
@@ -895,9 +1085,9 @@ while True:
     # Sair da conta
     elif(opcao == '9' and logado == True):
         logado = False
-        print("Saindo da conta...")
+        print(banco_frases['saindo_conta'])
         sleep(2)
-        print("Concluido!")
+        print(banco_frases['conta_saiu'])
         sleep(1)
         os.system("cls" if os.name == 'nt' else 'clear')
 
