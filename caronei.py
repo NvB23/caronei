@@ -7,8 +7,17 @@ import sys
 if(importlib.util.find_spec("pwinput") is None):
     subprocess.check_call([sys.executable, "-m", "pip", "install", "pwinput"])
     os.system("cls" if os.name == "nt" else "clear")
-if(importlib.util.find_spec("deepl") is None):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "deepl"])
+if(importlib.util.find_spec("deep_translator") is None):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "deep_translator"])
+    os.system("cls" if os.name == "nt" else "clear")
+if(importlib.util.find_spec("qrcode") is None):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "qrcode"])
+    os.system("cls" if os.name == "nt" else "clear")
+if(importlib.util.find_spec("pillow") is None):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pillow"])
+    os.system("cls" if os.name == "nt" else "clear")
+if(importlib.util.find_spec("pybrcode") is None):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pybrcode"])
     os.system("cls" if os.name == "nt" else "clear")
 
 
@@ -18,12 +27,18 @@ from datetime import date, datetime
 import time
 
 import re
-import deepl
+# import deepl
+from deep_translator import GoogleTranslator
+import qrcode
+from pybrcode.pix import generate_simple_pix
+from PIL import Image
+from random import randint
 
 linhas = "-" * 25
 
 banco_frases = {
     "titulo_cadastro": f"\033[1;36m{linhas} Cadastro {linhas}",
+    "titulo_carteira": f"\033[1;36m{linhas} Minha Carteira {linhas}",
     "titulo_usuario": "Usuário",
     "titulo_login": f"\033[1;36m{linhas} Login {linhas}",
     "titulo_reservar": f"\033[1;36m{linhas} Reservar Carona {linhas}",
@@ -47,6 +62,7 @@ banco_frases = {
     "nenhuma_carona": "\033[1;31mNenhuma carona para essa busca!",
     "reserva_cancelada": "\033[1;32mReserva cancelada!",
     "sem_reserva": "\033[1;31mVocê não tinha reserva nessa carona!",
+    "sem_saldo": "\033[1;31mVocê não tem saldo para reservar essa carona!",
     "carona_removida": "\033[1;32mCarona removida!",
     "nao_permissao": "\033[1;31mEsta carona não te pertence!",
     "saindo_conta": "\033[1;33mSaindo da conta...",
@@ -56,9 +72,10 @@ banco_frases = {
     "opcoes": "Opções",
     "menu_deslogado": "     [1] Cadastrar Usuário\n     [2] Fazer Login",
     "oferer_pegar_carona": "     [1] Oferecer Carona\n     [2] Pegar Carona",
-    "menu_logado": "     [3] Listar Todas as Caronas Disponíveis\n     [4] Buscar Carona\n     [5] Mostrar Detalhes da Carona\n     [6] Mostrar Todas as Suas Caronas\n     [7] Cancelar Reserva\n     [8] Remover Carona\n     [9] Logout",
-    "opcao_sair": "     [0] Fechar\n",
+    "menu_logado": "     [3] Listar Todas as Caronas Disponíveis\n     [4] Buscar Carona\n     [5] Mostrar Detalhes da Carona\n     [6] Mostrar Todas as Suas Caronas\n     [7] Cancelar Reserva\n     [8] Remover Carona\n     [9] Minha Carteira\n     [0] Logout\n",
+    "opcao_sair": "     [00] Fechar\n",
     "selecione_opcao": "\033[1;34mSelecione uma opção >>> \033[m",
+    "opcoes_carteira": "     [1] Depositar Dinheiro na Carteira\n     [2] Sacar Dinheiro da Carteira\n     [3] Voltar\n",
     
     "digite_nome": "\033[1;36mDigite seu nome: ",
     "digite_email": "\n\033[1;36mDigite seu email: ",
@@ -71,6 +88,8 @@ banco_frases = {
     "email_motorista": "\033[1;36mDigite o email do motorista: ",
     "origem_busca": "\033[1;36mDigite a origem buscada: ",
     "destino_busca": "\033[1;36mDigite o destino buscado: ",
+    "saldo_atual": "Saldo Atual: R$ ",
+    "quanto": "Quanto: R$",
     
     "hoje_viagem": "\033[1;36mVai ser hoje? \n  [1] Sim \n  [2] Não\n>>> ",
     "agora_viagem": "\033[1;36mVai ser agora? \n  [1] Sim \n  [2] Não\n>>> ",
@@ -109,20 +128,18 @@ banco_frases = {
     "label_valor": "Valor por Vagas"
 }
 
-para_traduzir = ""
+para_traduzir = []
 
 for chave, frase in banco_frases.items():
     frase_descolorida = re.sub(r"\033\[[0-9;]*m", "", frase)
 
-    frase_descolorida = frase_descolorida.replace("\n", "##")
-
-    para_traduzir += f"{frase_descolorida}||||"
+    para_traduzir.append(frase_descolorida)
 
 print("""\033[1;33m
         [1] Portuguese 
         [2] English 
         [3] Spanish 
-        [4] Japanese 
+        [4] Japanese
         [5] Arabic 
 """)
 
@@ -139,33 +156,26 @@ while True:
         nao_traduz = True
         break
     elif(lingua_opcao == '2'):
-        sigla_lingua = "EN-US"
+        sigla_lingua = "en"
         break
     elif(lingua_opcao == '3'):
-        sigla_lingua = "ES"
+        sigla_lingua = "es"
         break
     elif(lingua_opcao == '4'):
-        sigla_lingua = "JA"
+        sigla_lingua = "ja"
         break
     elif(lingua_opcao == '5'):
-        sigla_lingua = "AR"
+        sigla_lingua = "ar"
         break
     else:
         print("\033[1;31mInvalid option!\033[1;m")
         continue
-    
 
 if nao_traduz != True:
-    key = "3696baba-20cf-4935-b424-ac0653d5a413:fx"
-    tradutor = deepl.Translator(key)
-
-    traduzido = tradutor.translate_text(para_traduzir, target_lang=sigla_lingua).text
-    traduzido = traduzido.split("||||")
+    traduzido = GoogleTranslator(target=sigla_lingua, source='pt').translate_batch(para_traduzir)
     
     for chave, frases_traduzidas in zip(banco_frases.keys(), traduzido):
-        frases_traduzidas = frases_traduzidas.replace("##", "\n")
         banco_frases[chave] = frases_traduzidas
-
 
 
 caronei = """
@@ -180,6 +190,8 @@ usuarios_cadastrados = []
 caronas_cadastradas = []
 caronas_reservadas = {}
 usuario_atual = -1
+saldo = {}
+imagens_pix = []
 logado = False
 logout_opcao = ""
 cad_log_opcao = ""
@@ -192,7 +204,7 @@ while True:
 
         str_usuario = banco_frases['titulo_usuario']
 
-        nome_estilizado = f"{str_usuario}: {usuarios_cadastrados[usuario_atual][0]}".center(50).upper()
+        nome_estilizado = f"{str_usuario}: {usuarios_cadastrados[usuario_atual]['nome']}".center(50).upper()
         print(f"\033[3;34m{nome_estilizado}\033[m")
         print(f"\n\033[1;34m{linhas*2}")
     
@@ -220,7 +232,7 @@ while True:
         continue
 
     # Valida se não vai digitar nada fora do padrão
-    elif(opcao not in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]):
+    elif(opcao not in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "00"]):
         print(invalida_opcao)
         sleep(1)
         os.system("cls" if os.name == 'nt' else 'clear')
@@ -256,7 +268,7 @@ while True:
                 continue
             cadastrado = False
             for usu in usuarios_cadastrados:
-                if(email == usu[1]):
+                if(email == usu['email']):
                     print(banco_frases['email_cadastrado'])
                     cadastrado = True
                     break
@@ -289,7 +301,10 @@ while True:
         print(banco_frases['cadastro_sucesso'])
         sleep(1)
 
-        usuarios_cadastrados.append([nome, email, senha])
+        usuarios_cadastrados.append({'nome': nome, 'email': email, 'senha': senha})
+        for i in range(len(usuarios_cadastrados)):
+            usuario_atual = i
+        saldo[usuario_atual] = 0.0
         os.system("cls" if os.name == 'nt' else 'clear')
             
 
@@ -485,7 +500,7 @@ while True:
             else:
                 break
         
-        caronas_cadastradas.append([usuario_atual, origem, destino, data_viagem, horario, int(vagas), f"{float(valor_por_vagas):.2f}"])
+        caronas_cadastradas.append({'usuario_atual': usuario_atual, 'origem': origem, 'destino': destino, 'data_viagem': data_viagem, 'horario': horario, 'vagas': int(vagas), 'valor': f"{float(valor_por_vagas):.2f}"})
 
         print(f"\n{banco_frases['carona_criada']}")
         sleep(1)
@@ -521,10 +536,10 @@ while True:
                 break
 
             for i in range(len(usuarios_cadastrados)):
-                if (login_email == usuarios_cadastrados[i][1]):
+                if (login_email == usuarios_cadastrados[i]['email']):
                     usuario_atual = i
             for usuario in usuarios_cadastrados:
-                if((login_email == usuario[1]) and (login_senha == usuario[2])):
+                if((login_email == usuario['email']) and (login_senha == usuario['senha'])):
                     logado = True
             os.system("cls" if os.name == 'nt' else 'clear')
 
@@ -620,20 +635,25 @@ while True:
 
         informações_validadas = False
         for carona in caronas_cadastradas:
-            if (not usuarios_cadastrados[usuario_atual][1] == motorista_email) and (data_viagem == carona[3]) and (motorista_email == usuarios_cadastrados[carona[0]][1]):
+            if (not usuarios_cadastrados[usuario_atual]['email'] == motorista_email) and (data_viagem == carona['data_viagem']) and (motorista_email == usuarios_cadastrados[carona['usuario_atual']]['email']) and saldo[usuario_atual] >= float(carona['valor']) :
                 informações_validadas = True
-                carona[5] -= 1
+                carona['vagas'] -= 1
                 if(motorista_email, data_viagem) not in caronas_reservadas:
                     caronas_reservadas[(motorista_email, data_viagem)] = []
                 caronas_reservadas[(motorista_email, data_viagem)].append(usuario_atual)
+                valor = float(carona['valor'])
+                saldo[usuario_atual] -= valor
+                saldo[carona['usuario_atual']] += valor
                 print(f"\n{banco_frases['carona_reservada']}")
                 sleep(3)
                 os.system("cls" if os.name == 'nt' else 'clear')
                 break
-            elif carona[5] == 0:
+            elif saldo[usuario_atual] < float(carona['valor']):
+                print(banco_frases['sem_saldo'])
+            elif carona['vagas'] == 0:
                 print(banco_frases['sem_vagas'])
                 informações_validadas = False
-            elif usuarios_cadastrados[usuario_atual][1] == motorista_email:
+            elif usuarios_cadastrados[usuario_atual]['email'] == motorista_email:
                 print(banco_frases['nao_pegar_propria'])
                 informações_validadas = False
             else:
@@ -665,14 +685,14 @@ while True:
             str_valor = banco_frases['label_valor']
 
             for carona in caronas_cadastradas:
-                print(f"    {str_motorista}: {carona[0]}".center(70))
-                print(f"    {str_email_motorista}: {usuarios_cadastrados[carona[0]][1]}".center(70))
-                print(f"    {str_origem}: {carona[1]}".center(70))
-                print(f"    {str_destino}: {carona[2]}".center(70))
-                print(f"    {str_data_carona}: {carona[3]}".center(70))
-                print(f"    {str_horario}: {carona[4]}".center(70))
-                print(f"    {str_vagas}: {carona[5]}".center(70))
-                print(f"    {str_valor}: R${carona[6]}".center(70))
+                print(f"    {str_motorista}: {usuarios_cadastrados[carona['usuario_atual']]['nome']}".center(70))
+                print(f"    {str_email_motorista}: {usuarios_cadastrados[carona['usuario_atual']]['email']}".center(70))
+                print(f"    {str_origem}: {carona['origem']}".center(70))
+                print(f"    {str_destino}: {carona['destino']}".center(70))
+                print(f"    {str_data_carona}: {carona['data_viagem']}".center(70))
+                print(f"    {str_horario}: {carona['horario']}".center(70))
+                print(f"    {str_vagas}: {carona['vagas']}".center(70))
+                print(f"    {str_valor}: R${carona['valor']}".center(70))
                 print(f"{'_' * 70}\n")
 
             tempo = len(caronas_cadastradas) * 4
@@ -713,16 +733,16 @@ while True:
         str_valor = banco_frases['label_valor']
 
         for carona in caronas_cadastradas:
-            if origem_busca == carona[1] and destino_busca == carona[2]:
+            if origem_busca == carona['origem'] and destino_busca == carona['destino']:
                 encontrado_carona = True
-                print(f"    {str_motorista}: {carona[0]}".center(70))
-                print(f"    {str_email_motorista}: {usuarios_cadastrados[carona[0]][1]}".center(70))
-                print(f"    {str_origem}: {carona[1]}".center(70))
-                print(f"    {str_destino}: {carona[2]}".center(70))
-                print(f"    {str_data_carona}: {carona[3]}".center(70))
-                print(f"    {str_horario}: {carona[4]}".center(70))
-                print(f"    {str_vagas}: {carona[5]}".center(70))
-                print(f"    {str_valor}: R${carona[6]}".center(70))
+                print(f"    {str_motorista}: {usuarios_cadastrados[carona['usuario_atual']]['nome']}".center(70))
+                print(f"    {str_email_motorista}: {usuarios_cadastrados[carona['usuario_atual']]['email']}".center(70))
+                print(f"    {str_origem}: {carona['origem']}".center(70))
+                print(f"    {str_destino}: {carona['destino']}".center(70))
+                print(f"    {str_data_carona}: {carona['data_viagem']}".center(70))
+                print(f"    {str_horario}: {carona['horario']}".center(70))
+                print(f"    {str_vagas}: {carona['vagas']}".center(70))
+                print(f"    {str_valor}: R${carona['valor']}".center(70))
                 print(f"{'_' * 70}\n")
 
                 cont += 1
@@ -831,16 +851,16 @@ while True:
         str_vagas = banco_frases['label_vagas']
         str_valor = banco_frases['label_valor']
         for carona in caronas_cadastradas:
-            if motorista_email == usuarios_cadastrados[carona[0]][1] and data_viagem == carona[3]:
+            if motorista_email == usuarios_cadastrados[carona['usuario_atual']]['email'] and data_viagem == carona['data_viagem']:
                 encontrado_carona = True
-                print(f"    {str_motorista}: {carona[0]}".center(70))
-                print(f"    {str_email_motorista}: {usuarios_cadastrados[carona[0]][1]}".center(70))
-                print(f"    {str_origem}: {carona[1]}".center(70))
-                print(f"    {str_destino}: {carona[2]}".center(70))
-                print(f"    {str_data_carona}: {carona[3]}".center(70))
-                print(f"    {str_horario}: {carona[4]}".center(70))
-                print(f"    {str_vagas}: {carona[5]}".center(70))
-                print(f"    {str_valor}: R${carona[6]}".center(70))
+                print(f"    {str_motorista}: {usuarios_cadastrados[carona['usuario_atual']]['nome']}".center(70))
+                print(f"    {str_email_motorista}: {usuarios_cadastrados[carona['usuario_atual']]['email']}".center(70))
+                print(f"    {str_origem}: {carona['origem']}".center(70))
+                print(f"    {str_destino}: {carona['destino']}".center(70))
+                print(f"    {str_data_carona}: {carona['data_viagem']}".center(70))
+                print(f"    {str_horario}: {carona['horario']}".center(70))
+                print(f"    {str_vagas}: {carona['vagas']}".center(70))
+                print(f"    {str_valor}: R${carona['valor']}".center(70))
                 print(f"{'_' * 70}\n")
 
                 cont += 1
@@ -869,18 +889,18 @@ while True:
         str_valor = banco_frases['label_valor']
 
         for carona in caronas_cadastradas:
-            if carona[0] == usuario_atual:
+            if carona['usuario_atual'] == usuario_atual:
                 encontrado_carona = True
-                str_motorista = banco_frases['label_motorista']
-                str_email_motorista = banco_frases['label_email_motorista']
-                str_origem = banco_frases['label_origem']
-                str_destino = banco_frases['label_destino']
-                str_data_carona = banco_frases['label_data_carona']
-                str_horario = banco_frases['label_horario']
-                str_vagas = banco_frases['label_vagas']
-                str_valor = banco_frases['label_valor']
+                print(f"    {str_motorista}: {usuarios_cadastrados[carona['usuario_atual']]['nome']}".center(70))
+                print(f"    {str_email_motorista}: {usuarios_cadastrados[carona['usuario_atual']]['email']}".center(70))
+                print(f"    {str_origem}: {carona['origem']}".center(70))
+                print(f"    {str_destino}: {carona['destino']}".center(70))
+                print(f"    {str_data_carona}: {carona['data_viagem']}".center(70))
+                print(f"    {str_horario}: {carona['horario']}".center(70))
+                print(f"    {str_vagas}: {carona['vagas']}".center(70))
+                print(f"    {str_valor}: R${carona['valor']}".center(70))
                 print(f"{'_' * 70}\n")
-
+                
                 cont += 1
 
         sleep(cont * 3)
@@ -890,7 +910,8 @@ while True:
             sleep(3)
             os.system("cls" if os.name == 'nt' else 'clear')
             continue
-    
+
+    # Cancelar Reserva
     elif(opcao == '7' and logado == True):
         while True:
             motorista_email = input(banco_frases['email_motorista'])
@@ -975,12 +996,14 @@ while True:
 
         removida = False
         for carona in caronas_cadastradas:
-            if motorista_email == usuarios_cadastrados[carona[0]][1] and data_viagem == carona[3]:
+            if motorista_email == usuarios_cadastrados[carona['usuario_atual']]['email'] and data_viagem == carona['data_viagem']:
                 if (motorista_email, data_viagem) in caronas_reservadas:
-                    carona[5] += 1
+                    carona['vagas'] += 1
                     lista_de_reservas = caronas_reservadas[(motorista_email, data_viagem)]
                     if usuario_atual in lista_de_reservas:
                         lista_de_reservas.remove(usuario_atual)
+                        saldo[usuario_atual] += float(carona['valor'])
+                        saldo[carona['usuario_atual']] -= float(carona['valor'])
                         removida = True
                         print(banco_frases['reserva_cancelada'])
                     else:
@@ -1000,7 +1023,7 @@ while True:
     # Remover carona
     elif(opcao == '8' and logado == True):
         for carona in caronas_cadastradas:
-            if(usuario_atual == carona[0]):
+            if(usuario_atual == carona['usuario_atual']):
                 while True:
                     hoje = input(banco_frases['hoje_viagem'])
                     if(hoje == '1'):
@@ -1069,21 +1092,90 @@ while True:
             
                 data_viagem = f"{dia_viagem if len(dia_viagem) == 2 or dia_viagem[0] == '0' else f'0{dia_viagem}'}/{mes_viagem if len(mes_viagem) == 2 or mes_viagem[0] == '0' else f'0{mes_viagem}'}/{ano_viagem}"
 
+                para_remover = None
                 for car in caronas_cadastradas:
-                    if car[3] == data_viagem:
-                        caronas_cadastradas.remove(car)
-                        print(banco_frases['carona_removida'])
-                sleep(3)
-                os.system("cls" if os.name == 'nt' else 'clear')
+                    if (data_viagem == car['data_viagem']):
+                        para_remover = car
+                
+                if para_remover != None:
+                    tupla_verifica = (usuarios_cadastrados[usuario_atual]['email'], data_viagem)
 
+                    if(tupla_verifica in caronas_reservadas):
+                        for passageiro in caronas_reservadas[tupla_verifica]:
+                            saldo[passageiro] += float(para_remover['valor'])
+                            saldo[usuario_atual] -= float(para_remover['valor'])
+                    
+                        caronas_reservadas.pop(tupla_verifica)
+
+                    caronas_cadastradas.remove(para_remover)
+
+                    print(banco_frases['carona_removida'])
+                    sleep(3)
+                    os.system("cls" if os.name == 'nt' else 'clear')
             else:
                 print(banco_frases['nao_permissao'])
                 sleep(3)
                 os.system("cls" if os.name == 'nt' else 'clear')
                 continue
 
-    # Sair da conta
+    # Carteira
     elif(opcao == '9' and logado == True):
+        saldo_do_usuario = 0.0
+        if(usuario_atual not in saldo):
+            saldo[usuario_atual] = 0.0
+        else:
+            saldo_do_usuario = saldo[usuario_atual]
+            if saldo_do_usuario < 0.0:
+                saldo[usuario_atual] = 0.0
+                saldo_do_usuario = 0
+        print(banco_frases['titulo_carteira'])
+        str_saldo_atual = banco_frases['saldo_atual']
+        print(f"{str_saldo_atual}{saldo_do_usuario:.2f}\n".center(66))
+        print(banco_frases['opcoes_carteira'])
+        while True:
+            opcao_carteira = input("     >>> ")
+            if opcao_carteira.strip() == "":
+                print(banco_frases['digite_algo'])
+            elif(opcao_carteira == '1'):
+                quantia = float(input(banco_frases['quanto']))
+                saldo[usuario_atual] += quantia
+                chave_pix = "48b4dd6e-8374-4c92-b589-2900388597ae"
+                nome = "Naum Victor Batista"
+                cidade = "SAO PAULO"
+                pix_code = generate_simple_pix(
+                    key= chave_pix,
+                    fullname = nome,
+                    city= cidade,
+                    value= quantia
+                )
+                data = str(pix_code)
+                qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=4)
+                qr.add_data(data)
+                qr.make(fit=True)
+                img = qr.make_image(fill_color="black", back_color="white")
+                c_image = ""
+                for i in range(0,5):
+                    c_image += str(randint(0,9))
+                nome_imagem = f"pix-{usuario_atual}{c_image}.png"
+                img.save(nome_imagem)
+                imagens_pix.append(nome_imagem)
+                Image.open(nome_imagem).show()
+                os.system("cls" if os.name == 'nt' else 'clear')
+                break
+            elif (opcao_carteira == '2'):
+                quantia = float(input(banco_frases['quanto']))
+                saldo[usuario_atual] -= quantia
+                os.system("cls" if os.name == 'nt' else 'clear')
+                break
+            elif (opcao_carteira == '3'):
+                os.system("cls" if os.name == 'nt' else 'clear')
+                break
+            else:
+                print(banco_frases['opcao_invalida'])
+
+
+    # Sair da conta
+    elif(opcao == '0' and logado == True):
         logado = False
         print(banco_frases['saindo_conta'])
         sleep(2)
@@ -1093,6 +1185,8 @@ while True:
 
 
     # Fecha o programa
-    elif(opcao == '0'):
+    elif(opcao == '00'):
+        for imagem in imagens_pix:
+            os.remove(imagem)
         os.system("cls" if os.name == 'nt' else 'clear')
         break
