@@ -25,7 +25,6 @@ preparaBibliotecas()
 traducao()
 
 os.makedirs("dados", exist_ok= True)
-open("dados/usuarios.txt", "a")
 
 usuarios_cadastrados = []
 saldo = {}

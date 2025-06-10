@@ -1,0 +1,11 @@
+    Origem: Sousa
+    Destino: Patos
+    Data da Carona: 10/06/2025
+    Horário: 10:48
+    Vagas: 4
+    Valor por Vagas: R$20.00
+    Total a ser recebido nessa carona: R$80.00
+______________________________________________________________________
+
+
+    Total a ser recebido de todas as caronas: R$80.00

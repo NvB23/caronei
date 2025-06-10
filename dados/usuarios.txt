@@ -2,3 +2,5 @@
 {'nome': 'Ana', 'email': 'ana@email.com', 'senha': '12345678'}
 {'nome': 'Carlos', 'email': 'carlos@email.com', 'senha': '87654321'}
 {'nome': 'Jo�o', 'email': 'jo�o@email.com', 'senha': '12345678'}
+{'nome': 'Renata', 'email': 'renata@email.com', 'senha': '12345678'}
+{'nome': 'Ronaldo', 'email': 'ronaldo@email.com', 'senha': '87654321'}
