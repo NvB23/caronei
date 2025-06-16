@@ -55,7 +55,7 @@ def carteira(saldo, usuario_atual, imagens_pix):
             for i in range(0,5):
                 c_image += str(randint(0,9))
             nome_imagem = f"pix-{usuario_atual}{c_image}.png"
-            pasta = "imagens_pix"
+            pasta = "dados/imagens_pix"
             os.makedirs(pasta, exist_ok=True)
             path = f"{pasta}/{nome_imagem}"
             img.save(path)

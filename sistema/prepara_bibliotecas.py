@@ -10,4 +10,4 @@ def instalaBibliotecas(nomeDasBibliotecas):
             os.system("cls" if os.name == "nt" else "clear")
 
 def preparaBibliotecas():
-    instalaBibliotecas(["pwinput", "deep_translator", "qrcode", "pillow", "pybrcode"])
+    instalaBibliotecas(["pwinput", "deep_translator", "qrcode", "pillow", "pybrcode", "ast"])

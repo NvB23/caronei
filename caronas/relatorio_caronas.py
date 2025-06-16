@@ -72,9 +72,9 @@ def relatorioCaronas(caronas_cadastradas, usuario_atual, vagas, usuarios_cadastr
             if not validaOpcaoRelatorio:
                 continue
             elif opcao_relatorio == "1":
-                if os.path.isdir("relatorios") != True:
-                    os.makedirs("relatorios", mode=True)
-                with open(f"relatorios/relatorio-{usuarios_cadastrados[dono_carona]['email']}-{id_carona}.txt", "w") as relatorio:
+                if os.path.isdir("dados/relatorios") != True:
+                    os.makedirs("dados/relatorios", mode=True)
+                with open(f"dados/relatorios/relatorio-{usuarios_cadastrados[dono_carona]['email']}-{id_carona}.txt", "w") as relatorio:
                     relatorio.write(texto)
                 os.system("cls" if os.name == 'nt' else 'clear')
                 break
